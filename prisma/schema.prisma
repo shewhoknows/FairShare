@@ -1,0 +1,275 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth (NextAuth adapter) ───────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core Models ──────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // bcrypt hash – null for OAuth users
+
+  accounts      Account[]
+  sessions      Session[]
+
+  groupMemberships GroupMember[]
+  paidExpenses     Expense[]      @relation("PaidBy")
+  expenseSplits    ExpenseSplit[]
+
+  sentTransactions     Transaction[] @relation("Sender")
+  receivedTransactions Transaction[] @relation("Receiver")
+
+  friendshipsInitiated Friendship[] @relation("FriendFrom")
+  friendshipsReceived  Friendship[] @relation("FriendTo")
+
+  activityLogs ActivityLog[]
+  comments     Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model Group {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  currency    String  @default("USD")
+  category    GroupCategory @default(OTHER)
+  isArchived  Boolean @default(false)
+
+  members      GroupMember[]
+  expenses     Expense[]
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum GroupCategory {
+  HOME
+  TRIP
+  COUPLE
+  WORK
+  OTHER
+}
+
+model GroupMember {
+  id      String    @id @default(cuid())
+  groupId String
+  userId  String
+  role    GroupRole @default(MEMBER)
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+enum GroupRole {
+  ADMIN
+  MEMBER
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  description String
+  amount      Float
+  currency    String    @default("USD")
+  date        DateTime  @default(now())
+  category    String    @default("general")
+
+  groupId  String?
+  group    Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  paidById String
+  paidBy   User   @relation("PaidBy", fields: [paidById], references: [id])
+
+  splits    ExpenseSplit[]
+  splitType SplitType @default(EQUAL)
+
+  receiptUrl  String?
+  notes       String?
+
+  isRecurring        Boolean            @default(false)
+  recurringInterval  RecurringInterval?
+  recurringEndDate   DateTime?
+
+  isDeleted Boolean @default(false)
+  comments  Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId])
+  @@index([paidById])
+  @@index([date])
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  SHARES
+}
+
+enum RecurringInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model ExpenseSplit {
+  id        String @id @default(cuid())
+  expenseId String
+  userId    String
+
+  amount     Float  // actual dollar amount this user owes
+  percentage Float? // original percentage if PERCENTAGE split
+  shares     Int?   // original shares if SHARES split
+  isPaid     Boolean @default(false)
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  senderId   String   // person who paid
+  receiverId String   // person who received
+  amount     Float
+  currency   String   @default("USD")
+  note       String?
+
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id])
+
+  sender   User @relation("Sender",   fields: [senderId],   references: [id])
+  receiver User @relation("Receiver", fields: [receiverId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([groupId])
+}
+
+model Friendship {
+  id     String           @id @default(cuid())
+  fromId String
+  toId   String
+  status FriendshipStatus @default(PENDING)
+
+  from User @relation("FriendFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("FriendTo",   fields: [toId],   references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId])
+  @@index([fromId])
+  @@index([toId])
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Comment {
+  id        String @id @default(cuid())
+  content   String @db.Text
+  expenseId String
+  userId    String
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([expenseId])
+}
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  userId      String
+  type        ActivityType
+  description String
+  metadata    Json?
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum ActivityType {
+  EXPENSE_CREATED
+  EXPENSE_UPDATED
+  EXPENSE_DELETED
+  PAYMENT_MADE
+  GROUP_CREATED
+  GROUP_JOINED
+  FRIEND_ADDED
+  COMMENT_ADDED
+}
