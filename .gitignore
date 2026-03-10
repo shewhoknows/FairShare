@@ -36,7 +36,7 @@ yarn-error.log*
 next-env.d.ts
 
 # prisma
-prisma/migrations/*/migration.sql
+# migration.sql files must be tracked for prisma migrate deploy to work
 
 # uploads
 /public/uploads
