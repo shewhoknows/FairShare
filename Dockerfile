@@ -52,5 +52,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Migrate then start
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+# Migrate, optionally seed, then start
+CMD ["sh", "-c", "npx prisma migrate deploy && [ \"$SEED_ON_START\" = 'true' ] && npm run db:seed; npm run start"]
