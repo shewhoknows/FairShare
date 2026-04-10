@@ -39,7 +39,12 @@ export async function GET(
         where: { isDeleted: false },
         include: {
           paidBy: { select: { id: true, name: true, image: true } },
-          splits: { include: { user: { select: { id: true, name: true, image: true } } } },
+          splits: {
+            select: {
+              userId: true, amount: true, percentage: true, shares: true,
+              user: { select: { id: true, name: true, image: true } },
+            },
+          },
           comments: {
             include: { user: { select: { id: true, name: true, image: true } } },
             orderBy: { createdAt: 'asc' },

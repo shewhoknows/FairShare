@@ -31,7 +31,7 @@ export function CreateGroupModal({ open, onOpenChange }: Props) {
   const [loading, setLoading] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState('INR')
   const [category, setCategory] = useState('OTHER')
 
   const handleSubmit = async (e: React.FormEvent) => {

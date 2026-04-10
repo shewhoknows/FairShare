@@ -20,6 +20,8 @@ interface Props {
   currency?: string
   groupId?: string
   onSuccess?: () => void
+  /** When true, session user is recording a payment received FROM receiverId */
+  receivedMode?: boolean
 }
 
 export function SettleUpModal({
@@ -29,9 +31,10 @@ export function SettleUpModal({
   receiverName,
   receiverImage,
   suggestedAmount,
-  currency = 'USD',
+  currency = 'INR',
   groupId,
   onSuccess,
+  receivedMode = false,
 }: Props) {
   const [amount, setAmount] = useState(suggestedAmount.toFixed(2))
   const [note, setNote] = useState('')
@@ -44,16 +47,14 @@ export function SettleUpModal({
 
     setLoading(true)
     try {
+      const body = receivedMode
+        ? { senderId: receiverId, amount: numAmount, currency, groupId, note: note || undefined }
+        : { receiverId, amount: numAmount, currency, groupId, note: note || undefined }
+
       const res = await fetch('/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          receiverId,
-          amount: numAmount,
-          currency,
-          groupId,
-          note: note || undefined,
-        }),
+        body: JSON.stringify(body),
       })
 
       if (!res.ok) {
@@ -75,7 +76,7 @@ export function SettleUpModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Settle up</DialogTitle>
+          <DialogTitle>{receivedMode ? 'Mark payment received' : 'Settle up'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,7 +86,11 @@ export function SettleUpModal({
               <AvatarFallback>{getInitials(receiverName)}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">Paying {receiverName ?? 'user'}</p>
+              <p className="text-sm font-medium">
+                {receivedMode
+                  ? `${receiverName ?? 'User'} paid you`
+                  : `Paying ${receiverName ?? 'user'}`}
+              </p>
               <p className="text-xs text-gray-500">
                 Suggested: {formatCurrency(suggestedAmount, currency)}
               </p>
@@ -124,7 +129,7 @@ export function SettleUpModal({
               Cancel
             </Button>
             <Button type="submit" variant="teal" disabled={loading}>
-              {loading ? 'Recording…' : 'Record payment'}
+              {loading ? 'Recording…' : receivedMode ? 'Mark received' : 'Record payment'}
             </Button>
           </DialogFooter>
         </form>

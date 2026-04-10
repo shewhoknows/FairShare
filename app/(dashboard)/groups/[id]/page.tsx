@@ -27,6 +27,7 @@ export default function GroupDetailPage() {
   const [balances, setBalances] = useState<any>({ netBalances: [], simplifiedDebts: [] })
   const [loading, setLoading] = useState(true)
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<any>(null)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
   const [settleModal, setSettleModal] = useState<any>({ open: false })
@@ -159,7 +160,12 @@ export default function GroupDetailPage() {
           ) : (
             <div className="space-y-3">
               {group.expenses.map((expense: any) => (
-                <ExpenseCard key={expense.id} expense={expense} onDeleted={fetchGroup} />
+                <ExpenseCard
+                  key={expense.id}
+                  expense={expense}
+                  onDeleted={fetchGroup}
+                  onEdit={(exp) => setEditingExpense(exp)}
+                />
               ))}
             </div>
           )}
@@ -209,11 +215,12 @@ export default function GroupDetailPage() {
                 <div className="space-y-2">
                   {balances.simplifiedDebts.map((debt: any, i: number) => {
                     const isMyDebt = debt.fromId === session?.user?.id
+                    const iAmCreditor = debt.toId === session?.user?.id
                     return (
                       <div
                         key={i}
                         className={`flex items-center gap-3 p-3 rounded-lg ${
-                          isMyDebt ? 'bg-red-50' : 'bg-gray-50'
+                          isMyDebt ? 'bg-red-50' : iAmCreditor ? 'bg-green-50' : 'bg-gray-50'
                         }`}
                       >
                         <span className="text-sm flex-1">
@@ -225,7 +232,7 @@ export default function GroupDetailPage() {
                             {debt.toId === session?.user?.id ? 'You' : debt.toName}
                           </span>
                         </span>
-                        <span className={`text-sm font-bold ${isMyDebt ? 'text-red-600' : 'text-gray-700'}`}>
+                        <span className={`text-sm font-bold ${isMyDebt ? 'text-red-600' : iAmCreditor ? 'text-green-600' : 'text-gray-700'}`}>
                           {formatCurrency(debt.amount, group.currency)}
                         </span>
                         {isMyDebt && (
@@ -241,10 +248,31 @@ export default function GroupDetailPage() {
                                 receiverImage: null,
                                 amount: debt.amount,
                                 groupId: id,
+                                receivedMode: false,
                               })
                             }
                           >
                             Settle
+                          </Button>
+                        )}
+                        {iAmCreditor && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-100"
+                            onClick={() =>
+                              setSettleModal({
+                                open: true,
+                                receiverId: debt.fromId,
+                                receiverName: debt.fromName,
+                                receiverImage: null,
+                                amount: debt.amount,
+                                groupId: id,
+                                receivedMode: true,
+                              })
+                            }
+                          >
+                            Mark received
                           </Button>
                         )}
                       </div>
@@ -316,11 +344,15 @@ export default function GroupDetailPage() {
 
       {/* Modals */}
       <AddExpenseModal
-        open={addExpenseOpen}
-        onOpenChange={setAddExpenseOpen}
+        open={addExpenseOpen || !!editingExpense}
+        onOpenChange={(v) => {
+          if (!v) { setAddExpenseOpen(false); setEditingExpense(null) }
+          else setAddExpenseOpen(true)
+        }}
         groupId={id}
         members={group.members}
         onSuccess={fetchGroup}
+        expense={editingExpense ?? undefined}
       />
 
       <SettleUpModal
@@ -333,6 +365,7 @@ export default function GroupDetailPage() {
         currency={group.currency}
         groupId={settleModal.groupId}
         onSuccess={fetchGroup}
+        receivedMode={settleModal.receivedMode ?? false}
       />
     </div>
   )

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { Trash2, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trash2, Pencil, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency, formatDate, getCategoryEmoji, getInitials } from '@/lib/utils'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -11,6 +11,8 @@ import { toast } from '@/hooks/use-toast'
 interface ExpenseSplit {
   userId: string
   amount: number
+  percentage?: number | null
+  shares?: number | null
   user: { id: string; name: string | null; image: string | null }
 }
 
@@ -38,9 +40,10 @@ interface Expense {
 interface Props {
   expense: Expense
   onDeleted?: () => void
+  onEdit?: (expense: Expense) => void
 }
 
-export function ExpenseCard({ expense, onDeleted }: Props) {
+export function ExpenseCard({ expense, onDeleted, onEdit }: Props) {
   const { data: session } = useSession()
   const [expanded, setExpanded] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -156,6 +159,17 @@ export function ExpenseCard({ expense, onDeleted }: Props) {
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
+
+          {iWasPayer && onEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-400 hover:text-teal-600"
+              onClick={() => onEdit(expense)}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+          )}
 
           {iWasPayer && (
             <Button

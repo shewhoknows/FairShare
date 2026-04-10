@@ -1,8 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { useSession } from 'next-auth/react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -21,24 +18,38 @@ interface Member {
   user: { id: string; name: string | null; image: string | null; email: string }
 }
 
+interface EditExpense {
+  id: string
+  description: string
+  amount: number
+  currency: string
+  date: string
+  category: string
+  paidBy: { id: string }
+  splitType: string
+  splits: { userId: string; amount: number; percentage?: number | null; shares?: number | null }[]
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   groupId: string
   members: Member[]
   onSuccess?: () => void
+  /** If provided, opens in edit mode */
+  expense?: EditExpense
 }
 
 type SplitType = 'EQUAL' | 'EXACT' | 'PERCENTAGE' | 'SHARES'
 
-export function AddExpenseModal({ open, onOpenChange, groupId, members, onSuccess }: Props) {
+export function AddExpenseModal({ open, onOpenChange, groupId, members, onSuccess, expense }: Props) {
   const { data: session } = useSession()
   const [loading, setLoading] = useState(false)
   const [splitType, setSplitType] = useState<SplitType>('EQUAL')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [paidById, setPaidById] = useState(session?.user?.id ?? '')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState('INR')
   const [category, setCategory] = useState('general')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
@@ -46,12 +57,50 @@ export function AddExpenseModal({ open, onOpenChange, groupId, members, onSucces
   const [percentages, setPercentages] = useState<Record<string, string>>({})
   const [shares, setShares] = useState<Record<string, string>>({})
 
+  const isEditing = !!expense
+
   useEffect(() => {
-    if (open) {
+    if (open && expense) {
+      // Edit mode: populate from existing expense
+      setDescription(expense.description)
+      setAmount(expense.amount.toString())
+      setCurrency(expense.currency)
+      setDate(expense.date.split('T')[0])
+      setCategory(expense.category)
+      setPaidById(expense.paidBy.id)
+      setSplitType(expense.splitType as SplitType)
+      const memberIds = expense.splits.map((s) => s.userId)
+      setSelectedMembers(memberIds)
+      // Initialize split inputs from stored values
+      const exact: Record<string, string> = {}
+      const pcts: Record<string, string> = {}
+      const shs: Record<string, string> = {}
+      for (const s of expense.splits) {
+        exact[s.userId] = s.amount.toFixed(2)
+        if (s.percentage != null) pcts[s.userId] = s.percentage.toString()
+        if (s.shares != null) shs[s.userId] = s.shares.toString()
+      }
+      setExactAmounts(exact)
+      setPercentages(pcts)
+      setShares(shs)
+    } else if (open && !expense) {
+      // Create mode: reset to defaults
+      setDescription('')
+      setAmount('')
+      setCurrency('INR')
+      setDate(new Date().toISOString().split('T')[0])
+      setCategory('general')
+      setSplitType('EQUAL')
+      setExactAmounts({})
+      setPercentages({})
+      setShares({})
+      setSelectedMembers(members.map((m) => m.user.id))
+      setPaidById(session?.user?.id ?? members[0]?.user.id ?? '')
+    } else if (open) {
       setSelectedMembers(members.map((m) => m.user.id))
       setPaidById(session?.user?.id ?? members[0]?.user.id ?? '')
     }
-  }, [open, members, session?.user?.id])
+  }, [open, expense, members, session?.user?.id])
 
   const buildSplits = () => {
     const numericAmount = parseFloat(amount)
@@ -119,8 +168,11 @@ export function AddExpenseModal({ open, onOpenChange, groupId, members, onSucces
 
     setLoading(true)
     try {
-      const res = await fetch('/api/expenses', {
-        method: 'POST',
+      const url = isEditing ? `/api/expenses/${expense.id}` : '/api/expenses'
+      const method = isEditing ? 'PUT' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description,
@@ -128,7 +180,7 @@ export function AddExpenseModal({ open, onOpenChange, groupId, members, onSucces
           currency,
           date,
           category,
-          groupId,
+          groupId: groupId || undefined,
           paidById,
           splitType,
           splits,
@@ -137,10 +189,10 @@ export function AddExpenseModal({ open, onOpenChange, groupId, members, onSucces
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? 'Failed to add expense')
+        throw new Error(data.error ?? (isEditing ? 'Failed to update expense' : 'Failed to add expense'))
       }
 
-      toast({ title: 'Expense added!', variant: 'default' })
+      toast({ title: isEditing ? 'Expense updated!' : 'Expense added!', variant: 'default' })
       onOpenChange(false)
       onSuccess?.()
     } catch (err: any) {
@@ -160,7 +212,7 @@ export function AddExpenseModal({ open, onOpenChange, groupId, members, onSucces
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add an expense</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit expense' : 'Add an expense'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -359,7 +411,7 @@ export function AddExpenseModal({ open, onOpenChange, groupId, members, onSucces
               Cancel
             </Button>
             <Button type="submit" variant="teal" disabled={loading}>
-              {loading ? 'Adding…' : 'Add expense'}
+              {loading ? (isEditing ? 'Saving…' : 'Adding…') : (isEditing ? 'Save changes' : 'Add expense')}
             </Button>
           </DialogFooter>
         </form>

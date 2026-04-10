@@ -27,9 +27,10 @@ export default function DashboardPage() {
   const [groups, setGroups] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [addExpenseOpen, setAddExpenseOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<any>(null)
   const [createGroupOpen, setCreateGroupOpen] = useState(false)
   const [settleModal, setSettleModal] = useState<{
-    open: boolean; receiverId: string; receiverName: string | null; receiverImage: string | null; amount: number
+    open: boolean; receiverId: string; receiverName: string | null; receiverImage: string | null; amount: number; receivedMode?: boolean
   }>({ open: false, receiverId: '', receiverName: null, receiverImage: null, amount: 0 })
 
   const fetchData = async () => {
@@ -46,7 +47,7 @@ export default function DashboardPage() {
       setBalances(balancesData.balances ?? [])
       setTotalOwed(balancesData.totalOwed ?? 0)
       setTotalOwe(balancesData.totalOwe ?? 0)
-      setCurrency(balancesData.currency ?? 'USD')
+      setCurrency(balancesData.currency ?? 'INR')
       setRecentExpenses(expensesData.expenses ?? [])
       setGroups(groupsData.groups ?? [])
     } catch (err) {
@@ -185,10 +186,30 @@ export default function DashboardPage() {
                             receiverName: balance.user.name,
                             receiverImage: balance.user.image,
                             amount: Math.abs(balance.amount),
+                            receivedMode: false,
                           })
                         }
                       >
                         Settle
+                      </Button>
+                    )}
+                    {balance.amount > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                        onClick={() =>
+                          setSettleModal({
+                            open: true,
+                            receiverId: balance.user.id,
+                            receiverName: balance.user.name,
+                            receiverImage: balance.user.image,
+                            amount: Math.abs(balance.amount),
+                            receivedMode: true,
+                          })
+                        }
+                      >
+                        Received
                       </Button>
                     )}
                   </div>
@@ -226,7 +247,12 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {recentExpenses.map((expense) => (
-                <ExpenseCard key={expense.id} expense={expense} onDeleted={fetchData} />
+                <ExpenseCard
+                  key={expense.id}
+                  expense={expense}
+                  onDeleted={fetchData}
+                  onEdit={(exp) => setEditingExpense(exp)}
+                />
               ))}
             </div>
           )}
@@ -269,11 +295,15 @@ export default function DashboardPage() {
 
       {/* Modals */}
       <AddExpenseModal
-        open={addExpenseOpen}
-        onOpenChange={setAddExpenseOpen}
+        open={addExpenseOpen || !!editingExpense}
+        onOpenChange={(v) => {
+          if (!v) { setAddExpenseOpen(false); setEditingExpense(null) }
+          else setAddExpenseOpen(true)
+        }}
         groupId=""
         members={[]}
         onSuccess={fetchData}
+        expense={editingExpense ?? undefined}
       />
 
       <CreateGroupModal open={createGroupOpen} onOpenChange={setCreateGroupOpen} />
@@ -285,7 +315,9 @@ export default function DashboardPage() {
         receiverName={settleModal.receiverName}
         receiverImage={settleModal.receiverImage}
         suggestedAmount={settleModal.amount}
+        currency={currency}
         onSuccess={fetchData}
+        receivedMode={settleModal.receivedMode ?? false}
       />
     </div>
   )

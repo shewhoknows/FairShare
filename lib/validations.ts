@@ -14,7 +14,7 @@ export const loginSchema = z.object({
 export const createGroupSchema = z.object({
   name: z.string().min(1, 'Group name is required').max(50),
   description: z.string().max(200).optional(),
-  currency: z.string().default('USD'),
+  currency: z.string().default('INR'),
   category: z.enum(['HOME', 'TRIP', 'COUPLE', 'WORK', 'OTHER']).default('OTHER'),
 })
 
@@ -32,7 +32,7 @@ export const splitSchema = z.object({
 export const createExpenseSchema = z.object({
   description: z.string().min(1, 'Description is required').max(100),
   amount: z.number().positive('Amount must be positive'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('INR'),
   date: z.string().or(z.date()),
   category: z.string().default('general'),
   groupId: z.string().optional(),
@@ -45,9 +45,10 @@ export const createExpenseSchema = z.object({
 })
 
 export const createTransactionSchema = z.object({
-  receiverId: z.string(),
+  receiverId: z.string().optional(),
+  senderId: z.string().optional(),
   amount: z.number().positive(),
-  currency: z.string().default('USD'),
+  currency: z.string().default('INR'),
   groupId: z.string().optional(),
   note: z.string().max(200).optional(),
 })

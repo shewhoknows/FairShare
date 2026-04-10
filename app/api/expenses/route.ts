@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createExpenseSchema } from '@/lib/validations'
-import { roundAmount } from '@/lib/utils'
+import { roundAmount, formatCurrency } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -35,7 +35,12 @@ export async function GET(req: NextRequest) {
     where,
     include: {
       paidBy: { select: { id: true, name: true, image: true } },
-      splits: { include: { user: { select: { id: true, name: true, image: true } } } },
+      splits: {
+        select: {
+          userId: true, amount: true, percentage: true, shares: true,
+          user: { select: { id: true, name: true, image: true } },
+        },
+      },
       group: { select: { id: true, name: true } },
     },
     orderBy: { date: 'desc' },
@@ -129,7 +134,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: session.user.id,
         type: 'EXPENSE_CREATED',
-        description: `${session.user.name} added "${data.description}" ($${data.amount.toFixed(2)})`,
+        description: `${session.user.name} added "${data.description}" (${formatCurrency(data.amount, data.currency)})`,
         metadata: { expenseId: expense.id, groupId: data.groupId },
       },
     })
