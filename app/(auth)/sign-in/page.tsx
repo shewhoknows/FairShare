@@ -25,10 +25,13 @@ export default function SignInPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setErrorMsg('')
+    console.log('[sign-in] attempting credentials sign-in for:', email)
     try {
       const result = await signIn('credentials', {
         email,
@@ -36,16 +39,35 @@ export default function SignInPage() {
         redirect: false,
       })
 
-      if (result?.error) {
-        toast({
-          title: 'Sign in failed',
-          description: 'Invalid email or password',
-          variant: 'destructive',
-        })
+      console.log('[sign-in] result:', result)
+
+      if (!result) {
+        const msg = 'No response from authentication server'
+        console.error('[sign-in] error: result is null/undefined')
+        setErrorMsg(msg)
+        toast({ title: 'Sign in failed', description: msg, variant: 'destructive' })
+      } else if (result.error) {
+        const msg = result.error === 'CredentialsSignin'
+          ? 'Invalid email or password'
+          : result.error
+        console.error('[sign-in] error:', result.error, 'status:', result.status)
+        setErrorMsg(msg)
+        toast({ title: 'Sign in failed', description: msg, variant: 'destructive' })
+      } else if (!result.ok) {
+        const msg = `Sign in failed (status ${result.status})`
+        console.error('[sign-in] not ok:', result)
+        setErrorMsg(msg)
+        toast({ title: 'Sign in failed', description: msg, variant: 'destructive' })
       } else {
+        console.log('[sign-in] success, redirecting to dashboard')
         router.push('/dashboard')
         router.refresh()
       }
+    } catch (err: any) {
+      console.error('[sign-in] exception:', err)
+      const msg = err?.message ?? 'Unexpected error during sign in'
+      setErrorMsg(msg)
+      toast({ title: 'Sign in failed', description: msg, variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -120,6 +142,12 @@ export default function SignInPage() {
                 autoComplete="current-password"
               />
             </div>
+
+            {errorMsg && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {errorMsg}
+              </p>
+            )}
 
             <Button type="submit" variant="teal" className="w-full" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
