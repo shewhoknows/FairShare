@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
@@ -9,10 +9,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
 
+function RegisteredBanner() {
+  const searchParams = useSearchParams()
+  if (searchParams.get('registered') !== 'true') return null
+  return (
+    <div className="bg-teal-50 border border-teal-200 text-teal-800 text-sm rounded-xl px-4 py-3 mb-4">
+      Account created! Sign in below to get started.
+    </div>
+  )
+}
+
 export default function SignInPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const justRegistered = searchParams.get('registered') === 'true'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -59,11 +67,9 @@ export default function SignInPage() {
           <span className="text-2xl font-bold text-gray-900">FairShare</span>
         </div>
 
-        {justRegistered && (
-          <div className="bg-teal-50 border border-teal-200 text-teal-800 text-sm rounded-xl px-4 py-3 mb-4">
-            Account created! Sign in below to get started.
-          </div>
-        )}
+        <Suspense>
+          <RegisteredBanner />
+        </Suspense>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
