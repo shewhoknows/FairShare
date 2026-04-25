@@ -12,7 +12,6 @@ const loginSchema = z.object({
 })
 
 export const authOptions: NextAuthOptions = {
-  trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma) as any,
   session: {
