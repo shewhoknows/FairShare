@@ -19,7 +19,7 @@ test.describe.serial('Friends', () => {
     await expect(page.getByRole('dialog')).toBeVisible()
 
     await page.getByRole('dialog').getByPlaceholder(/email/i).fill(userB.email)
-    await page.getByRole('dialog').getByRole('button', { name: /add|send|invite/i }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Add friend' }).click()
 
     // User B's name should appear in the friends list
     await expect(page.getByText(userB.name)).toBeVisible({ timeout: 8_000 })
@@ -31,7 +31,7 @@ test.describe.serial('Friends', () => {
     await expect(page.getByRole('dialog')).toBeVisible()
 
     await page.getByRole('dialog').getByPlaceholder(/email/i).fill('nobody-real@notexist-xyz.com')
-    await page.getByRole('dialog').getByRole('button', { name: /add|send|invite/i }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Add friend' }).click()
 
     await expect(page.getByText(/not found|no user|doesn't exist/i)).toBeVisible({ timeout: 8_000 })
   })

@@ -11,33 +11,30 @@ test.describe.serial('Balances & Settle Up', () => {
     const { userB } = getCredentials()
 
     await page.goto('/groups')
-    await page.getByRole('button', { name: /new group|create group/i }).click()
+    await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
-    await page.getByRole('dialog').getByPlaceholder(/name/i).fill('Balance Test Group')
-    await page.getByRole('dialog').getByRole('button', { name: /create/i }).click()
+    await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('Balance Test Group')
+    await page.getByRole('dialog').getByRole('button', { name: 'Create group' }).click()
     await expect(page).toHaveURL(/\/groups\//, { timeout: 10_000 })
     groupUrl = page.url()
 
-    // Add User B
     await page.getByRole('tab', { name: /members/i }).click()
-    await page.getByPlaceholder(/friend@example.com/i).fill(userB.email)
-    await page.getByRole('button', { name: /^add$/i }).click()
+    await page.getByPlaceholder('friend@example.com').fill(userB.email)
+    await page.getByRole('button', { name: 'Add' }).click()
     await expect(page.getByText(userB.email)).toBeVisible({ timeout: 8_000 })
 
-    // Add expense (User A pays, B owes)
     await page.getByRole('tab', { name: /expenses/i }).click()
-    await page.getByRole('button', { name: /add expense/i }).click()
+    await page.getByRole('button', { name: 'Expense' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
-    await page.getByRole('dialog').getByPlaceholder(/description/i).fill(expenseDesc)
-    await page.getByRole('dialog').getByPlaceholder(/0\.00|amount/i).fill('1000')
-    await page.getByRole('dialog').getByRole('button', { name: /add expense|save|create/i }).click()
+    await page.getByRole('dialog').getByPlaceholder('e.g. Dinner, Uber, Groceries').fill(expenseDesc)
+    await page.getByRole('dialog').getByPlaceholder('0.00').first().fill('1000')
+    await page.getByRole('dialog').getByRole('button', { name: /add expense|save changes/i }).click()
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 8_000 })
   })
 
   test('7.1 balances tab shows debt in INR', async ({ page }) => {
     await page.goto(groupUrl)
     await page.getByRole('tab', { name: /balances/i }).click()
-    // Page should mention ₹ — B owes A ₹500
     const content = await page.content()
     expect(content).toContain('₹')
   })
@@ -49,41 +46,37 @@ test.describe.serial('Balances & Settle Up', () => {
     await page.goto(groupUrl)
     await page.getByRole('tab', { name: /balances/i }).click()
 
-    // Look for Settle Up button
-    await expect(page.getByRole('button', { name: /settle up/i })).toBeVisible({ timeout: 5_000 })
-    await page.getByRole('button', { name: /settle up/i }).click()
+    await expect(page.getByRole('button', { name: 'Settle' })).toBeVisible({ timeout: 5_000 })
+    await page.getByRole('button', { name: 'Settle' }).click()
 
     await expect(page.getByRole('dialog')).toBeVisible()
-    // Confirm the payment
-    await page.getByRole('dialog').getByRole('button', { name: /confirm|settle|pay/i }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Record payment' }).click()
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 8_000 })
 
     await ctx.close()
   })
 
-  test('7.3 User A sees creditor Received button', async ({ page }) => {
-    // Add another expense so A is owed again
+  test('7.3 User A sees Mark received button after new expense', async ({ page }) => {
     await page.goto(groupUrl)
     await page.getByRole('tab', { name: /expenses/i }).click()
-    await page.getByRole('button', { name: /add expense/i }).click()
+    await page.getByRole('button', { name: 'Expense' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
-    await page.getByRole('dialog').getByPlaceholder(/description/i).fill(`${expenseDesc} 2`)
-    await page.getByRole('dialog').getByPlaceholder(/0\.00|amount/i).fill('800')
-    await page.getByRole('dialog').getByRole('button', { name: /add expense|save|create/i }).click()
+    await page.getByRole('dialog').getByPlaceholder('e.g. Dinner, Uber, Groceries').fill(`${expenseDesc} 2`)
+    await page.getByRole('dialog').getByPlaceholder('0.00').first().fill('800')
+    await page.getByRole('dialog').getByRole('button', { name: /add expense|save changes/i }).click()
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 8_000 })
 
     await page.getByRole('tab', { name: /balances/i }).click()
-    // User A as creditor should see a green "Received" button
-    await expect(page.getByRole('button', { name: /received/i })).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByRole('button', { name: 'Mark received' })).toBeVisible({ timeout: 5_000 })
   })
 
   test('7.4 User A marks payment received', async ({ page }) => {
     await page.goto(groupUrl)
     await page.getByRole('tab', { name: /balances/i }).click()
 
-    await page.getByRole('button', { name: /received/i }).click()
+    await page.getByRole('button', { name: 'Mark received' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
-    await page.getByRole('dialog').getByRole('button', { name: /confirm|mark|received/i }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Mark received' }).click()
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 8_000 })
   })
 })
