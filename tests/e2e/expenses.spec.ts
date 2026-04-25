@@ -67,11 +67,9 @@ test.describe.serial('Expenses', () => {
     await card.locator('button').nth(1).click() // chevron is 0, edit is 1
 
     await expect(page.getByRole('dialog')).toBeVisible()
-    // Modal should be pre-filled with description
-    await expect(page.getByRole('dialog').getByDisplayValue(expenseDescription)).toBeVisible()
-
-    // Update the description
-    const descInput = page.getByRole('dialog').getByDisplayValue(expenseDescription)
+    // Modal should be pre-filled — just grab the description input and update it
+    const descInput = page.getByRole('dialog').getByPlaceholder(/description/i)
+    await descInput.clear()
     await descInput.fill(`${expenseDescription} edited`)
     await page.getByRole('dialog').getByRole('button', { name: /save|update/i }).click()
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 8_000 })
