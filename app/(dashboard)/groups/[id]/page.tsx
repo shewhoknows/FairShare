@@ -31,6 +31,7 @@ export default function GroupDetailPage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
   const [settleModal, setSettleModal] = useState<any>({ open: false })
+  const [friends, setFriends] = useState<{ id: string; name: string | null; email: string; image: string | null }[]>([])
 
   const fetchGroup = async () => {
     try {
@@ -49,28 +50,40 @@ export default function GroupDetailPage() {
     }
   }
 
-  useEffect(() => { fetchGroup() }, [id])
+  const fetchFriends = async () => {
+    try {
+      const res = await fetch('/api/friends')
+      if (res.ok) { const data = await res.json(); setFriends(data.friends ?? []) }
+    } catch {}
+  }
 
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!inviteEmail.trim()) return
+  useEffect(() => { fetchGroup(); fetchFriends() }, [id])
+
+  const handleInviteByEmail = async (email: string) => {
+    if (!email.trim()) return
     setInviting(true)
     try {
       const res = await fetch(`/api/groups/${id}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail }),
+        body: JSON.stringify({ email }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to add member')
-      toast({ title: `${data.member.user.name ?? inviteEmail} added to the group!` })
+      toast({ title: `${data.member.user.name ?? email} added to the group!` })
       setInviteEmail('')
       fetchGroup()
+      fetchFriends()
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' })
     } finally {
       setInviting(false)
     }
+  }
+
+  const handleInvite = (e: React.FormEvent) => {
+    e.preventDefault()
+    handleInviteByEmail(inviteEmail)
   }
 
   if (loading) {
@@ -320,9 +333,42 @@ export default function GroupDetailPage() {
               ))}
             </div>
 
-            {/* Invite */}
+            {/* Add member */}
             <div className="border-t border-gray-100 pt-4">
               <h4 className="text-sm font-medium text-gray-700 mb-3">Add member</h4>
+
+              {(() => {
+                const currentMemberIds = new Set(group.members.map((m: any) => m.userId))
+                const availableFriends = friends.filter((f) => !currentMemberIds.has(f.id))
+                return availableFriends.length > 0 ? (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-2">Your friends</p>
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {availableFriends.map((friend) => (
+                        <button
+                          key={friend.id}
+                          type="button"
+                          disabled={inviting}
+                          onClick={() => handleInviteByEmail(friend.email)}
+                          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:border-teal-200 hover:bg-teal-50 transition-colors text-left disabled:opacity-50"
+                        >
+                          <Avatar className="w-7 h-7 flex-shrink-0">
+                            <AvatarImage src={friend.image ?? ''} />
+                            <AvatarFallback className="text-xs">{getInitials(friend.name)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{friend.name ?? friend.email}</p>
+                            <p className="text-xs text-gray-500 truncate">{friend.email}</p>
+                          </div>
+                          <UserPlus className="w-4 h-4 text-teal-500 flex-shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null
+              })()}
+
+              <p className="text-xs text-gray-500 mb-2">Add by email</p>
               <form onSubmit={handleInvite} className="flex gap-2">
                 <input
                   type="email"
@@ -330,9 +376,8 @@ export default function GroupDetailPage() {
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="friend@example.com"
                   className="flex-1 text-sm border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  required
                 />
-                <Button type="submit" variant="teal" size="sm" disabled={inviting}>
+                <Button type="submit" variant="teal" size="sm" disabled={inviting || !inviteEmail.trim()}>
                   <UserPlus className="w-4 h-4 mr-1" />
                   {inviting ? 'Adding…' : 'Add'}
                 </Button>

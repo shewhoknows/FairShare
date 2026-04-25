@@ -54,6 +54,10 @@ export function ExpenseCard({ expense, onDeleted, onEdit }: Props) {
   const myUserId = session?.user?.id
   const mySplit = expense.splits.find((s) => s.userId === myUserId)
   const iWasPayer = expense.paidBy.id === myUserId
+  const isGroupExpense = !!expense.group
+  const canEdit = isGroupExpense
+    ? expense.splits.some((s) => s.userId === myUserId) || iWasPayer
+    : iWasPayer
   const myOwed = iWasPayer
     ? expense.splits
         .filter((s) => s.userId !== myUserId)
@@ -160,7 +164,7 @@ export function ExpenseCard({ expense, onDeleted, onEdit }: Props) {
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </Button>
 
-          {iWasPayer && onEdit && (
+          {canEdit && onEdit && (
             <Button
               variant="ghost"
               size="icon"
@@ -171,7 +175,7 @@ export function ExpenseCard({ expense, onDeleted, onEdit }: Props) {
             </Button>
           )}
 
-          {iWasPayer && (
+          {canEdit && (
             <Button
               variant="ghost"
               size="icon"

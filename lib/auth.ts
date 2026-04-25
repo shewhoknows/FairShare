@@ -87,6 +87,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string
+        if (token.name != null) session.user.name = token.name as string
+        if (token.image != null) session.user.image = token.image as string
       }
       return session
     },
@@ -108,5 +110,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string
+    name?: string | null
+    image?: string | null
   }
 }
