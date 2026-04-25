@@ -9,6 +9,7 @@ let groupUrl = ''
 test.describe.serial('Groups', () => {
   test('4.1 create group lands on group detail page', async ({ page }) => {
     await page.goto('/groups')
+    await page.waitForLoadState('networkidle')
 
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()

@@ -8,6 +8,7 @@ const DICEBEAR_BASE = 'https://api.dicebear.com/7.x/avataaars/svg?seed='
 test.describe.serial('Avatar Picker', () => {
   test('2.1 clicking user section opens avatar modal', async ({ page }) => {
     await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
     // The sidebar user section is a button — click it
     await page.locator('aside button').filter({ has: page.locator('img, [class*="Avatar"]') }).click()
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 })
@@ -16,6 +17,7 @@ test.describe.serial('Avatar Picker', () => {
 
   test('2.2 modal shows 9 avatar options', async ({ page }) => {
     await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
     await page.locator('aside button').filter({ has: page.locator('img, [class*="Avatar"]') }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
@@ -26,6 +28,7 @@ test.describe.serial('Avatar Picker', () => {
 
   test('2.3 save button is disabled until selection is made', async ({ page }) => {
     await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
     await page.locator('aside button').filter({ has: page.locator('img, [class*="Avatar"]') }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
@@ -35,6 +38,7 @@ test.describe.serial('Avatar Picker', () => {
 
   test('2.4 selecting avatar updates preview', async ({ page }) => {
     await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
     await page.locator('aside button').filter({ has: page.locator('img, [class*="Avatar"]') }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
@@ -54,6 +58,7 @@ test.describe.serial('Avatar Picker', () => {
 
   test('2.5 save avatar updates sidebar and persists on reload', async ({ page }) => {
     await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
     await page.locator('aside button').filter({ has: page.locator('img, [class*="Avatar"]') }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
@@ -79,6 +84,7 @@ test.describe.serial('Avatar Picker', () => {
 
   test('2.6 cancel closes modal without changing avatar', async ({ page }) => {
     await page.goto('/dashboard')
+    await page.waitForLoadState('networkidle')
     const sidebarImg = page.locator('aside img').first()
     const srcBefore = await sidebarImg.getAttribute('src')
 

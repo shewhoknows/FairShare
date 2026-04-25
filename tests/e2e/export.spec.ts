@@ -8,6 +8,7 @@ test.use({ storageState: AUTH_A })
 test.describe.serial('CSV Export', () => {
   test('10.0 setup — create group with an expense', async ({ page }) => {
     await page.goto('/groups')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('Export Test Group')

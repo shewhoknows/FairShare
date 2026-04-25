@@ -62,6 +62,6 @@ test.describe.serial('Authentication', () => {
     await page.getByPlaceholder('••••••••').fill('TestPass123!')
     await page.getByRole('button', { name: 'Create account' }).click()
     // Should show error (toast or inline)
-    await expect(page.getByText(/already exists|already registered|account.*exist/i)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByText(/already exists/i)).toBeVisible({ timeout: 8_000 })
   })
 })

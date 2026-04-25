@@ -10,6 +10,7 @@ test.describe.serial('Edge Cases', () => {
     const { userB } = getCredentials()
 
     await page.goto('/groups')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('Edge Case Group')
@@ -56,6 +57,7 @@ test.describe.serial('Edge Cases', () => {
 
   test('12.3 adding non-existent friend shows error', async ({ page }) => {
     await page.goto('/friends')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: 'Add friend' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder(/email/i).fill('nobody@nonexistent-domain-xyz.com')
@@ -73,6 +75,7 @@ test.describe.serial('Edge Cases', () => {
 
   test('12.5 sign-up password shorter than 8 chars is rejected', async ({ page }) => {
     await page.goto('/sign-up')
+    await page.waitForLoadState('networkidle')
     await page.getByPlaceholder('Jane Doe').fill('Test User')
     await page.getByPlaceholder('you@example.com').fill(`short-pw-${Date.now()}@test.com`)
     await page.getByPlaceholder('••••••••').fill('short')
@@ -83,10 +86,11 @@ test.describe.serial('Edge Cases', () => {
   test('12.6 sign-up with duplicate email shows error', async ({ page }) => {
     const { userA } = getCredentials()
     await page.goto('/sign-up')
+    await page.waitForLoadState('networkidle')
     await page.getByPlaceholder('Jane Doe').fill('Duplicate')
     await page.getByPlaceholder('you@example.com').fill(userA.email)
     await page.getByPlaceholder('••••••••').fill('TestPass123!')
     await page.getByRole('button', { name: /create account/i }).click()
-    await expect(page.getByText(/already exists|already registered/i)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByText(/already exists/i)).toBeVisible({ timeout: 8_000 })
   })
 })

@@ -10,6 +10,7 @@ test.use({ storageState: AUTH_A })
 test.describe.serial('Comments', () => {
   test('8.0 setup — create group and add expense', async ({ page }) => {
     await page.goto('/groups')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('Comment Test Group')

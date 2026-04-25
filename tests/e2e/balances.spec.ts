@@ -11,6 +11,7 @@ test.describe.serial('Balances & Settle Up', () => {
     const { userB } = getCredentials()
 
     await page.goto('/groups')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('Balance Test Group')

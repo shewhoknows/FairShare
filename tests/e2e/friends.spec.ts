@@ -6,6 +6,7 @@ test.use({ storageState: AUTH_A })
 test.describe.serial('Friends', () => {
   test('3.1 friends page renders', async ({ page }) => {
     await page.goto('/friends')
+    await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\/friends/)
     await expect(page.getByRole('heading', { name: /friends/i })).toBeVisible()
   })
@@ -13,6 +14,7 @@ test.describe.serial('Friends', () => {
   test('3.2 add friend by email', async ({ page }) => {
     const { userB } = getCredentials()
     await page.goto('/friends')
+    await page.waitForLoadState('networkidle')
 
     // Open Add Friend modal
     await page.getByRole('button', { name: /add friend/i }).click()
@@ -27,6 +29,7 @@ test.describe.serial('Friends', () => {
 
   test('3.3 non-existent email shows error', async ({ page }) => {
     await page.goto('/friends')
+    await page.waitForLoadState('networkidle')
     await page.getByRole('button', { name: /add friend/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
@@ -39,6 +42,7 @@ test.describe.serial('Friends', () => {
   test('3.4 friend balance shows INR symbol', async ({ page }) => {
     const { userB } = getCredentials()
     await page.goto('/friends')
+    await page.waitForLoadState('networkidle')
     // Look for ₹ symbol in the page — should not contain raw $0.00
     const content = await page.content()
     expect(content).toContain('₹')
