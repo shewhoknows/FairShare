@@ -1,7 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Activity, UserCircle } from 'lucide-react'
+import { signOut } from 'next-auth/react'
+import { LayoutDashboard, Users, Activity, UserCircle, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -33,6 +34,13 @@ export function MobileNav() {
             </Link>
           )
         })}
+        <button
+          onClick={() => signOut({ callbackUrl: '/' })}
+          className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium text-gray-400 transition-colors hover:text-gray-600"
+        >
+          <LogOut className="w-5 h-5" />
+          Sign out
+        </button>
       </div>
     </nav>
   )
