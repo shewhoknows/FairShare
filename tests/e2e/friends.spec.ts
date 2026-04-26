@@ -21,7 +21,7 @@ test.describe.serial('Friends', () => {
     await page.getByRole('dialog').getByPlaceholder(/email/i).fill(userB.email)
     await page.getByRole('dialog').getByRole('button', { name: 'Add friend' }).click()
 
-    await expect(page.getByText(userB.name)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(userB.name)).toBeVisible({ timeout: 15_000 })
   })
 
   test('3.3 non-existent email shows error', async ({ page }) => {

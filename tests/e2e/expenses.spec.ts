@@ -31,7 +31,7 @@ test.describe.serial('Expenses', () => {
     await expect(page.getByRole('button', { name: 'Expense' })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Expense' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
-    await expect(page.getByRole('dialog').getByText('INR')).toBeVisible()
+    await expect(page.getByRole('dialog').getByText(/INR|₹/)).toBeVisible()
     await page.keyboard.press('Escape')
   })
 

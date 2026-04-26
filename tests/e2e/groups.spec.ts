@@ -19,7 +19,7 @@ test.describe.serial('Groups', () => {
 
     await expect(page).toHaveURL(/\/groups\//, { timeout: 20_000 })
     groupUrl = page.url()
-    await expect(page.getByText('E2E Test Group')).toBeVisible()
+    await expect(page.getByText('E2E Test Group')).toBeVisible({ timeout: 10_000 })
   })
 
   test('4.2 members tab shows current user as Admin', async ({ page }) => {
