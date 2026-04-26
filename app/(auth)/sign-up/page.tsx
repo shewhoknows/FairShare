@@ -30,15 +30,17 @@ export default function SignUpPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Registration failed')
 
-      // Auto sign in
+      // Auto sign in after registration
       const result = await signIn('credentials', { email, password, redirect: false })
-      if (result?.error) throw new Error('Could not sign in after registration')
-
-      router.push('/dashboard')
-      router.refresh()
+      if (result?.ok) {
+        router.push('/dashboard')
+        router.refresh()
+      } else {
+        // If auto sign-in fails, send to sign-in page with success message
+        router.push('/sign-in?registered=true')
+      }
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' })
-    } finally {
       setLoading(false)
     }
   }

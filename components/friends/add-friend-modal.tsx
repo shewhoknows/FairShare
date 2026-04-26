@@ -55,7 +55,7 @@ export function AddFriendModal({ open, onOpenChange, onSuccess }: Props) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Friend's email address</Label>
+            <Label>Friend&apos;s email address</Label>
             <Input
               type="email"
               placeholder="friend@example.com"

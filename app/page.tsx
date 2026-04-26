@@ -130,7 +130,7 @@ export default function LandingPage() {
           </p>
           <Link href="/sign-up">
             <Button size="lg" className="bg-white text-teal-700 hover:bg-teal-50 gap-2">
-              Get started — it's free
+              Get started — it&apos;s free
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>

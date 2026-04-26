@@ -69,7 +69,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Hi, {session?.user?.name?.split(' ')[0]} 👋
           </h1>
-          <p className="text-gray-500 text-sm mt-0.5">Here's your expense overview</p>
+          <p className="text-gray-500 text-sm mt-0.5">Here&apos;s your expense overview</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>

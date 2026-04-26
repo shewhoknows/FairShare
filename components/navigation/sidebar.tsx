@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -15,6 +16,7 @@ import {
 import { cn, getInitials } from '@/lib/utils'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { AvatarPickerModal } from '@/components/profile/avatar-picker-modal'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,6 +28,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 min-h-screen sticky top-0">
@@ -61,7 +64,10 @@ export function Sidebar() {
 
       {/* User */}
       <div className="px-3 py-4 border-t border-gray-100">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1">
+        <button
+          onClick={() => setAvatarModalOpen(true)}
+          className="w-full flex items-center gap-3 px-3 py-2 mb-1 rounded-lg hover:bg-gray-50 transition-colors text-left"
+        >
           <Avatar className="w-8 h-8">
             <AvatarImage src={session?.user?.image ?? ''} />
             <AvatarFallback>{getInitials(session?.user?.name)}</AvatarFallback>
@@ -72,7 +78,8 @@ export function Sidebar() {
             </p>
             <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
           </div>
-        </div>
+          <Settings className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        </button>
 
         <Button
           variant="ghost"
@@ -82,6 +89,8 @@ export function Sidebar() {
           <LogOut className="w-4 h-4" />
           Sign out
         </Button>
+
+        <AvatarPickerModal open={avatarModalOpen} onOpenChange={setAvatarModalOpen} />
       </div>
     </aside>
   )

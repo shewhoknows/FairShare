@@ -50,8 +50,16 @@ export async function PUT(
   })
 
   if (!expense) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (expense.paidById !== session.user.id) {
-    return NextResponse.json({ error: 'Only the payer can edit an expense' }, { status: 403 })
+
+  if (expense.groupId) {
+    const membership = await prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId: expense.groupId, userId: session.user.id } },
+    })
+    if (!membership)
+      return NextResponse.json({ error: 'Only group members can edit this expense' }, { status: 403 })
+  } else {
+    if (expense.paidById !== session.user.id)
+      return NextResponse.json({ error: 'Only the payer can edit this expense' }, { status: 403 })
   }
 
   try {
@@ -127,12 +135,20 @@ export async function DELETE(
 
   const expense = await prisma.expense.findUnique({
     where: { id: params.id },
-    select: { paidById: true, description: true, amount: true },
+    select: { paidById: true, description: true, amount: true, groupId: true },
   })
 
   if (!expense) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (expense.paidById !== session.user.id) {
-    return NextResponse.json({ error: 'Only the payer can delete an expense' }, { status: 403 })
+
+  if (expense.groupId) {
+    const membership = await prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId: expense.groupId, userId: session.user.id } },
+    })
+    if (!membership)
+      return NextResponse.json({ error: 'Only group members can delete this expense' }, { status: 403 })
+  } else {
+    if (expense.paidById !== session.user.id)
+      return NextResponse.json({ error: 'Only the payer can delete this expense' }, { status: 403 })
   }
 
   await prisma.expense.update({
