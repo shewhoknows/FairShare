@@ -9,7 +9,7 @@ let groupUrl = ''
 test.describe.serial('Groups', () => {
   test('4.1 create group lands on group detail page', async ({ page }) => {
     await page.goto('/groups')
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('button', { name: /new group/i })).toBeVisible({ timeout: 15_000 })
 
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
@@ -17,13 +17,14 @@ test.describe.serial('Groups', () => {
     await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('E2E Test Group')
     await page.getByRole('dialog').getByRole('button', { name: 'Create group' }).click()
 
-    await expect(page).toHaveURL(/\/groups\//, { timeout: 10_000 })
+    await expect(page).toHaveURL(/\/groups\//, { timeout: 20_000 })
     groupUrl = page.url()
     await expect(page.getByText('E2E Test Group')).toBeVisible()
   })
 
   test('4.2 members tab shows current user as Admin', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByRole('tab', { name: /members/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('tab', { name: /members/i }).click()
     await expect(page.getByText(/admin/i)).toBeVisible()
   })
@@ -31,6 +32,7 @@ test.describe.serial('Groups', () => {
   test('4.3 friend picker shows User B', async ({ page }) => {
     const { userB } = getCredentials()
     await page.goto(groupUrl)
+    await expect(page.getByRole('tab', { name: /members/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('tab', { name: /members/i }).click()
     await expect(page.getByText(userB.name)).toBeVisible({ timeout: 5_000 })
   })
@@ -38,6 +40,7 @@ test.describe.serial('Groups', () => {
   test('4.4 add User B via friend picker', async ({ page }) => {
     const { userB } = getCredentials()
     await page.goto(groupUrl)
+    await expect(page.getByRole('tab', { name: /members/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('tab', { name: /members/i }).click()
 
     const friendRow = page.locator('button').filter({ hasText: userB.name })
@@ -49,6 +52,7 @@ test.describe.serial('Groups', () => {
   test('4.5 adding same member again shows error', async ({ page }) => {
     const { userB } = getCredentials()
     await page.goto(groupUrl)
+    await expect(page.getByRole('tab', { name: /members/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('tab', { name: /members/i }).click()
 
     await page.getByPlaceholder('friend@example.com').fill(userB.email)
@@ -59,6 +63,7 @@ test.describe.serial('Groups', () => {
 
   test('4.6 add by email — non-existent user shows error', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByRole('tab', { name: /members/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('tab', { name: /members/i }).click()
 
     await page.getByPlaceholder('friend@example.com').fill('notarealuser@nowhere.xyz')

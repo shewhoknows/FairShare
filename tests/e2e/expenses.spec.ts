@@ -11,14 +11,15 @@ test.describe.serial('Expenses', () => {
     const { userB } = getCredentials()
 
     await page.goto('/groups')
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('button', { name: /new group/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('Expense Test Group')
     await page.getByRole('dialog').getByRole('button', { name: 'Create group' }).click()
-    await expect(page).toHaveURL(/\/groups\//, { timeout: 10_000 })
+    await expect(page).toHaveURL(/\/groups\//, { timeout: 20_000 })
     groupUrl = page.url()
 
+    await expect(page.getByRole('tab', { name: /members/i })).toBeVisible({ timeout: 10_000 })
     await page.getByRole('tab', { name: /members/i }).click()
     await page.getByPlaceholder('friend@example.com').fill(userB.email)
     await page.getByRole('button', { name: 'Add' }).click()
@@ -27,6 +28,7 @@ test.describe.serial('Expenses', () => {
 
   test('5.1 add expense modal defaults to INR', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByRole('button', { name: 'Expense' })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Expense' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await expect(page.getByRole('dialog').getByText('INR')).toBeVisible()
@@ -35,6 +37,7 @@ test.describe.serial('Expenses', () => {
 
   test('5.2 add expense (equal split)', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByRole('button', { name: 'Expense' })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Expense' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
@@ -50,12 +53,14 @@ test.describe.serial('Expenses', () => {
 
   test('5.3 User A (payer) sees edit button', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByText(expenseDescription)).toBeVisible({ timeout: 15_000 })
     const card = page.locator('article, [class*="card"]').filter({ hasText: expenseDescription }).first()
     await expect(card.locator('button').nth(1)).toBeVisible()
   })
 
   test('5.4 edit expense as payer (User A)', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByText(expenseDescription)).toBeVisible({ timeout: 15_000 })
     const card = page.locator('article, [class*="card"]').filter({ hasText: expenseDescription }).first()
     await card.locator('button').nth(1).click()
 

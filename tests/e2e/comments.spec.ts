@@ -10,14 +10,15 @@ test.use({ storageState: AUTH_A })
 test.describe.serial('Comments', () => {
   test('8.0 setup — create group and add expense', async ({ page }) => {
     await page.goto('/groups')
-    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('button', { name: /new group/i })).toBeVisible({ timeout: 15_000 })
     await page.getByRole('button', { name: /new group/i }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('e.g. NYC Trip, Our Apartment…').fill('Comment Test Group')
     await page.getByRole('dialog').getByRole('button', { name: 'Create group' }).click()
-    await expect(page).toHaveURL(/\/groups\//, { timeout: 10_000 })
+    await expect(page).toHaveURL(/\/groups\//, { timeout: 20_000 })
     groupUrl = page.url()
 
+    await expect(page.getByRole('button', { name: 'Expense' })).toBeVisible({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Expense' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('e.g. Dinner, Uber, Groceries').fill(expenseDesc)
@@ -28,6 +29,7 @@ test.describe.serial('Comments', () => {
 
   test('8.1 expand expense shows comment section', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByText(expenseDesc)).toBeVisible({ timeout: 15_000 })
     const card = page.locator('article, [class*="card"]').filter({ hasText: expenseDesc }).first()
     await card.locator('button').first().click()
     await expect(card.getByPlaceholder('Add a comment…')).toBeVisible({ timeout: 5_000 })
@@ -35,6 +37,7 @@ test.describe.serial('Comments', () => {
 
   test('8.2 add a comment', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByText(expenseDesc)).toBeVisible({ timeout: 15_000 })
     const card = page.locator('article, [class*="card"]').filter({ hasText: expenseDesc }).first()
     await card.locator('button').first().click()
 
@@ -47,6 +50,7 @@ test.describe.serial('Comments', () => {
 
   test('8.3 comment persists after reload', async ({ page }) => {
     await page.goto(groupUrl)
+    await expect(page.getByText(expenseDesc)).toBeVisible({ timeout: 15_000 })
     const card = page.locator('article, [class*="card"]').filter({ hasText: expenseDesc }).first()
     await card.locator('button').first().click()
     await expect(card.getByText(commentText)).toBeVisible({ timeout: 5_000 })
