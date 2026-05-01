@@ -1,0 +1,80 @@
+name: FairShare
+options:
+  bundleIdPrefix: com.fairshare
+  deploymentTarget:
+    iOS: "17.0"
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: 4JRB53LG5C
+schemes:
+  FairShare:
+    build:
+      targets:
+        FairShare: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - FairShareTests
+        - FairShareUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+targets:
+  FairShare:
+    type: application
+    platform: iOS
+    sources:
+      - FairShareApp/Sources
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eshabhoon.fairshare
+        INFOPLIST_KEY_CFBundleDisplayName: FairShare
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads: YES
+        INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_127.0.0.1_NSExceptionAllowsInsecureHTTPLoads: YES
+    info:
+      path: FairShareApp/Sources/Info.plist
+      properties:
+        CFBundleDisplayName: FairShare
+        API_BASE_URL: $(API_BASE_URL)
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+            127.0.0.1:
+              NSExceptionAllowsInsecureHTTPLoads: true
+  FairShareTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - FairShareApp/Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eshabhoon.fairshare.tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: FairShare
+  FairShareUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - FairShareApp/UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eshabhoon.fairshare.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: FairShare
