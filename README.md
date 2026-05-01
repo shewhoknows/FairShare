@@ -89,6 +89,26 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+### iOS app
+
+The native iOS MVP lives in `ios/` and is generated with XcodeGen.
+
+```bash
+# From the repo root
+npm install
+cp .env.example .env
+# Fill DATABASE_URL, NEXTAUTH_SECRET, and MOBILE_JWT_SECRET
+npm run db:push
+npm run dev
+
+# In another terminal
+cd ios
+xcodegen generate
+xcodebuild -project FairShare.xcodeproj -scheme FairShare -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+```
+
+Debug iOS builds use `http://localhost:3000` from `ios/Config/Debug.xcconfig`. Update `ios/Config/Release.xcconfig` with your deployed HTTPS backend before making a release build.
+
 ---
 
 ## 📁 Project Structure
