@@ -2,6 +2,7 @@ name: Deploy to Railway
 
 env:
   PRODUCTION_URL: https://fairshare-web-production.up.railway.app
+  RAILWAY_PROJECT: 0305c493-298b-4f7b-9c3e-e99aea9973c8
   RAILWAY_SERVICE: fairshare-web
 
 on:
@@ -55,7 +56,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT || 'production' }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID || env.RAILWAY_PROJECT }}
         run: |
           args=(--service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --ci)
           if [ -n "$RAILWAY_PROJECT_ID" ]; then
