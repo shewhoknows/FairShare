@@ -22,6 +22,7 @@
 		DDA6F15E146FE8364F795ED7 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B210F3C652DFC3B49E5D9E4 /* AuthView.swift */; };
 		DDBD34C624ABAAE57CE91C33 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DE2D601CE5473F46C35C565 /* Models.swift */; };
 		EB772A7A89B480FC84FA5776 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C0C4CFD9ED35CDE653AD03 /* GroupDetailView.swift */; };
+		F1C0A7B5C89E4D11A2B3C4D5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E7D3A1F2B4C5968790ABCDEF /* Assets.xcassets */; };
 		FA24D5A44A5AF305931281A2 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3291635EC1EDADA07B3224EF /* MainTabView.swift */; };
 /* End PBXBuildFile section */
 
@@ -60,10 +61,11 @@
 		A3B0937768B81E16F80B55F7 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		B2F048A698C86A339F524097 /* ExpenseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseEditorView.swift; sourceTree = "<group>"; };
 		BC79E08AA029905549D1944E /* FairShareUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairShareUITests.swift; sourceTree = "<group>"; };
-		CFE4FE312C81165370F00F66 /* FairShare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FairShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CFE4FE312C81165370F00F66 /* FairShare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FairShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D042A7CDFAE01A195FCCA151 /* GroupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupsView.swift; sourceTree = "<group>"; };
 		D1DBBEA39505A2220C81A080 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		DD3522936BC94FAA868D95FB /* MockFairShareAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockFairShareAPI.swift; sourceTree = "<group>"; };
+		E7D3A1F2B4C5968790ABCDEF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F43D127DC71FBB9265395B08 /* FairShareTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairShareTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,6 +83,7 @@
 				04C0C4CFD9ED35CDE653AD03 /* GroupDetailView.swift */,
 				D042A7CDFAE01A195FCCA151 /* GroupsView.swift */,
 				53B5D3872D4F7B5D27682BB7 /* Info.plist */,
+				E7D3A1F2B4C5968790ABCDEF /* Assets.xcassets */,
 				3E2EBA87B59F4683B10035E6 /* KeychainTokenStore.swift */,
 				3291635EC1EDADA07B3224EF /* MainTabView.swift */,
 				DD3522936BC94FAA868D95FB /* MockFairShareAPI.swift */,
@@ -165,6 +168,7 @@
 			buildConfigurationList = 317C08DCA290473852746B40 /* Build configuration list for PBXNativeTarget "FairShare" */;
 			buildPhases = (
 				A76B6DE90A2365245F1EFC24 /* Sources */,
+				B8C2E904A5F611D2C3B4A5F6 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -236,6 +240,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B8C2E904A5F611D2C3B4A5F6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F1C0A7B5C89E4D11A2B3C4D5 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		381DA05FEE42656E7751E4CE /* Sources */ = {
@@ -332,15 +347,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = FairShareApp/Sources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = FairShare;
+				INFOPLIST_KEY_CFBundleDisplayName = PaisaVasool;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_127.0.0.1_NSExceptionAllowsInsecureHTTPLoads = YES;
 				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iceking.xpence;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -370,15 +387,17 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = FairShareApp/Sources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = FairShare;
+				INFOPLIST_KEY_CFBundleDisplayName = PaisaVasool;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_127.0.0.1_NSExceptionAllowsInsecureHTTPLoads = YES;
 				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iceking.xpence;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
