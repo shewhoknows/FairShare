@@ -1,13 +1,60 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Split, Chrome } from 'lucide-react'
+import { Split, Chrome, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
+
+function VerificationStatus() {
+  const searchParams = useSearchParams()
+  const [verificationStatus, setVerificationStatus] = useState<'verified' | 'error' | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  useEffect(() => {
+    const verified = searchParams.get('verified')
+    const error = searchParams.get('error')
+    
+    if (verified === 'true') {
+      setVerificationStatus('verified')
+      toast({
+        title: 'Email verified!',
+        description: 'Your email has been verified. You can now sign in.',
+      })
+    } else if (error) {
+      setVerificationStatus('error')
+      const errorMessages: Record<string, string> = {
+        'missing_token': 'Verification link is invalid.',
+        'verification_failed': 'Verification failed. The link may have expired.',
+        'server_error': 'Something went wrong. Please try again.',
+      }
+      setErrorMessage(errorMessages[error] || 'Verification failed.')
+    }
+  }, [searchParams])
+
+  if (verificationStatus === 'verified') {
+    return (
+      <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+        <CheckCircle className="w-5 h-5 text-green-600" />
+        <p className="text-sm text-green-800">Email verified successfully! You can now sign in.</p>
+      </div>
+    )
+  }
+
+  if (verificationStatus === 'error') {
+    return (
+      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+        <AlertCircle className="w-5 h-5 text-red-600" />
+        <p className="text-sm text-red-800">{errorMessage}</p>
+      </div>
+    )
+  }
+
+  return null
+}
 
 export default function SignInPage() {
   const router = useRouter()
@@ -58,6 +105,9 @@ export default function SignInPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-8">
+          <Suspense fallback={null}>
+            <VerificationStatus />
+          </Suspense>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
           <p className="text-gray-500 text-sm mb-6">Sign in to your account</p>
 

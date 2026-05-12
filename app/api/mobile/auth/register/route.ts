@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { registerSchema } from '@/lib/validations'
 import { createMobileToken } from '@/lib/mobile-auth'
 import { mobileUser } from '@/lib/mobile-dto'
+import { createVerificationToken } from '@/lib/verification'
+import { sendVerificationEmail } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,8 +31,35 @@ export async function POST(req: NextRequest) {
       select: { id: true, name: true, email: true, image: true },
     })
 
+    // Create and send verification token
+    const verificationToken = await createVerificationToken(email)
+    const emailResult = await sendVerificationEmail(email, verificationToken)
+
+    // Log verification URL for development/testing
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const verificationUrl = `${appUrl}/api/auth/verify-email?token=${verificationToken}`
+    
+    if (emailResult.logged) {
+      console.log('')
+      console.log('╔════════════════════════════════════════════════════════════════╗')
+      console.log('║  🔐 VERIFICATION URL (for testing)                             ║')
+      console.log('╠════════════════════════════════════════════════════════════════╣')
+      console.log(`║  ${verificationUrl.slice(0, 62).padEnd(62)} ║`)
+      if (verificationUrl.length > 62) {
+        console.log(`║  ${verificationUrl.slice(62).padEnd(62)} ║`)
+      }
+      console.log('╚════════════════════════════════════════════════════════════════╝')
+      console.log('')
+    }
+
     return NextResponse.json(
-      { token: createMobileToken(user), user: mobileUser(user) },
+      {
+        token: createMobileToken(user),
+        user: mobileUser(user),
+        message: emailResult.logged 
+          ? 'Registration successful! Check server console for verification link.'
+          : 'Registration successful! Please check your email to verify your account.',
+      },
       { status: 201 }
     )
   } catch (error) {

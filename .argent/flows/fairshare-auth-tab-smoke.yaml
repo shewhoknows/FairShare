@@ -1,0 +1,41 @@
+executionPrerequisite: iPhone 17 Pro simulator
+  87C52D22-6951-4795-ADDD-2FAC058A8CF2 is booted and FairShare
+  (com.fairshare.app) is installed; test starts from any foreground app state.
+steps:
+  - echo: Launch FairShare and verify the sign-in screen is visible.
+  - tool: launch-app
+    args:
+      udid: 87C52D22-6951-4795-ADDD-2FAC058A8CF2
+      bundleId: com.fairshare.app
+  - tool: screenshot
+    args:
+      udid: 87C52D22-6951-4795-ADDD-2FAC058A8CF2
+      scale: 0.3
+  - echo: Tap the Create account segment and expect Name, Email, and Password fields.
+  - tool: run-sequence
+    args:
+      udid: 87C52D22-6951-4795-ADDD-2FAC058A8CF2
+      steps:
+        - tool: gesture-tap
+          args:
+            x: 0.710199004975
+            y: 0.2284515636915
+          delayMs: 500
+  - tool: screenshot
+    args:
+      udid: 87C52D22-6951-4795-ADDD-2FAC058A8CF2
+      scale: 0.3
+  - echo: Tap the Sign in segment and expect Email and Password fields only.
+  - tool: run-sequence
+    args:
+      udid: 87C52D22-6951-4795-ADDD-2FAC058A8CF2
+      steps:
+        - tool: gesture-tap
+          args:
+            x: 0.289800995025
+            y: 0.2284515636915
+          delayMs: 500
+  - tool: screenshot
+    args:
+      udid: 87C52D22-6951-4795-ADDD-2FAC058A8CF2
+      scale: 0.3
