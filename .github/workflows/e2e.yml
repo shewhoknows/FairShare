@@ -1,5 +1,8 @@
 name: E2E Tests
 
+env:
+  PRODUCTION_URL: https://fairshare-web-production.up.railway.app
+
 on:
   push:
     branches: [main]
@@ -25,13 +28,13 @@ jobs:
 
       - name: Wait for Railway deployment to be live
         env:
-          TEST_URL: ${{ secrets.TEST_URL }}
+          TEST_URL: ${{ env.PRODUCTION_URL }}
           EXPECTED_SHA: ${{ github.sha }}
         run: node .github/scripts/wait-for-deploy.js
 
       - name: Run E2E tests
         env:
-          TEST_URL: ${{ secrets.TEST_URL }}
+          TEST_URL: ${{ env.PRODUCTION_URL }}
         run: npm run test:e2e
 
       - name: Upload Playwright report

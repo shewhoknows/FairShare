@@ -1,5 +1,9 @@
 name: Deploy to Railway
 
+env:
+  PRODUCTION_URL: https://fairshare-web-production.up.railway.app
+  RAILWAY_SERVICE: fairshare-web
+
 on:
   push:
     branches: [main]
@@ -50,11 +54,10 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
           RAILWAY_ENVIRONMENT: ${{ secrets.RAILWAY_ENVIRONMENT || 'production' }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
-          args=(--service "$RAILWAY_SERVICE_ID" --environment "$RAILWAY_ENVIRONMENT" --ci)
+          args=(--service "$RAILWAY_SERVICE" --environment "$RAILWAY_ENVIRONMENT" --ci)
           if [ -n "$RAILWAY_PROJECT_ID" ]; then
             args+=(--project "$RAILWAY_PROJECT_ID")
           fi
@@ -62,6 +65,6 @@ jobs:
 
       - name: Verify production is serving this commit
         env:
-          TEST_URL: ${{ secrets.TEST_URL }}
+          TEST_URL: ${{ env.PRODUCTION_URL }}
           EXPECTED_SHA: ${{ github.sha }}
         run: node .github/scripts/wait-for-deploy.js
