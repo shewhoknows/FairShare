@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Split, Chrome } from 'lucide-react'
+import { Split, Chrome, Mail, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +16,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [registrationComplete, setRegistrationComplete] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,6 +31,7 @@ export default function SignUpPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Registration failed')
 
+<<<<<<< HEAD
       // Auto sign in after registration
       const result = await signIn('credentials', { email, password, redirect: false })
       if (result?.ok) {
@@ -39,6 +41,14 @@ export default function SignUpPage() {
         // If auto sign-in fails, send to sign-in page with success message
         router.push('/sign-in?registered=true')
       }
+=======
+      // Show verification message instead of auto-signing in
+      setRegistrationComplete(true)
+      toast({
+        title: 'Registration successful!',
+        description: data.message || 'Please check your email to verify your account.',
+      })
+>>>>>>> claude/enhance-fairshare-app-1lgiI
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' })
       setLoading(false)
@@ -56,68 +66,90 @@ export default function SignUpPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Create an account</h1>
-          <p className="text-gray-500 text-sm mb-6">Start splitting expenses for free</p>
-
-          <Button
-            variant="outline"
-            className="w-full gap-2 mb-4"
-            onClick={() => { setGoogleLoading(true); signIn('google', { callbackUrl: '/dashboard' }) }}
-            disabled={googleLoading}
-          >
-            <Chrome className="w-4 h-4" />
-            {googleLoading ? 'Redirecting…' : 'Continue with Google'}
-          </Button>
-
-          <div className="relative mb-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+          {registrationComplete ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-teal-600" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
+              <p className="text-gray-500 mb-6">
+                We&apos;ve sent a verification link to <strong>{email}</strong>. Click the link to verify your account and start using FairShare.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => router.push('/sign-in')}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to sign in
+              </Button>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-white text-gray-400">or</span>
-            </div>
-          </div>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">Create an account</h1>
+              <p className="text-gray-500 text-sm mb-6">Start splitting expenses for free</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label>Full name</Label>
-              <Input
-                placeholder="Jane Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                minLength={2}
-              />
-            </div>
+              <Button
+                variant="outline"
+                className="w-full gap-2 mb-4"
+                onClick={() => { setGoogleLoading(true); signIn('google', { callbackUrl: '/dashboard' }) }}
+                disabled={googleLoading}
+              >
+                <Chrome className="w-4 h-4" />
+                {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+              </Button>
 
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-white text-gray-400">or</span>
+                </div>
+              </div>
 
-            <div>
-              <Label>Password</Label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-              />
-              <p className="text-xs text-gray-400 mt-1">At least 8 characters</p>
-            </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label>Full name</Label>
+                  <Input
+                    placeholder="Jane Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    minLength={2}
+                  />
+                </div>
 
-            <Button type="submit" variant="teal" className="w-full" disabled={loading}>
-              {loading ? 'Creating account…' : 'Create account'}
-            </Button>
-          </form>
+                <div>
+                  <Label>Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Password</Label>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">At least 8 characters</p>
+                </div>
+
+                <Button type="submit" variant="teal" className="w-full" disabled={loading}>
+                  {loading ? 'Creating account…' : 'Create account'}
+                </Button>
+              </form>
+            </>
+          )}
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">
