@@ -232,3 +232,4 @@ The `DATABASE_URL` environment variable is automatically injected by Railway's P
 ## 📝 License
 
 MIT © FairShare
+# Deploy trigger Tue May 12 18:41:06 IST 2026
