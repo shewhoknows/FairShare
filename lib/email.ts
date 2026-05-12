@@ -1,6 +1,14 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialization of Resend client to avoid build-time errors
+let resendInstance: Resend | null = null
+
+function getResend(): Resend | null {
+  if (!resendInstance && process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_xxxxxxxx') {
+    resendInstance = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resendInstance
+}
 
 export interface EmailOptions {
   to: string
@@ -15,6 +23,18 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
     console.log('')
     console.log('╔════════════════════════════════════════════════════════════════╗')
     console.log('║  📧 EMAIL (Resend not configured - logging only)              ║')
+    console.log('╠════════════════════════════════════════════════════════════════╣')
+    console.log(`║  To:      ${options.to.padEnd(52)} ║`)
+    console.log(`║  Subject: ${options.subject.padEnd(52)} ║`)
+    console.log('╚════════════════════════════════════════════════════════════════╝')
+    return { success: true, logged: true }
+  }
+
+  const resend = getResend()
+  if (!resend) {
+    console.log('')
+    console.log('╔════════════════════════════════════════════════════════════════╗')
+    console.log('║  📧 EMAIL (Resend not initialized - logging only)             ║')
     console.log('╠════════════════════════════════════════════════════════════════╣')
     console.log(`║  To:      ${options.to.padEnd(52)} ║`)
     console.log(`║  Subject: ${options.subject.padEnd(52)} ║`)
