@@ -54,3 +54,4 @@ ENV HOSTNAME="0.0.0.0"
 
 # Migrate, optionally seed, then start
 CMD ["sh", "-c", "npx prisma migrate deploy && [ \"$SEED_ON_START\" = 'true' ] && npm run db:seed; npm run start"]
+# Build Tue May 12 18:51:31 IST 2026
