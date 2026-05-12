@@ -31,24 +31,12 @@ export default function SignUpPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Registration failed')
 
-<<<<<<< HEAD
-      // Auto sign in after registration
-      const result = await signIn('credentials', { email, password, redirect: false })
-      if (result?.ok) {
-        router.push('/dashboard')
-        router.refresh()
-      } else {
-        // If auto sign-in fails, send to sign-in page with success message
-        router.push('/sign-in?registered=true')
-      }
-=======
       // Show verification message instead of auto-signing in
       setRegistrationComplete(true)
       toast({
         title: 'Registration successful!',
         description: data.message || 'Please check your email to verify your account.',
       })
->>>>>>> claude/enhance-fairshare-app-1lgiI
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' })
       setLoading(false)
