@@ -24,19 +24,10 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Wait for Railway deployment to be live
-        run: |
-          echo "Polling health endpoint (waits for Railway deploy to finish)..."
-          for i in $(seq 1 40); do
-            status=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.TEST_URL }}/api/health")
-            if [ "$status" = "200" ]; then
-              echo "✅ App is live (attempt $i)"
-              exit 0
-            fi
-            echo "Attempt $i: HTTP $status — retrying in 15s"
-            sleep 15
-          done
-          echo "❌ App did not become healthy within 10 minutes"
-          exit 1
+        env:
+          TEST_URL: ${{ secrets.TEST_URL }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: node .github/scripts/wait-for-deploy.js
 
       - name: Run E2E tests
         env:
