@@ -1,0 +1,156 @@
+name: Feature Parity
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fairshare?schema=public
+  NEXTAUTH_SECRET: ci-nextauth-secret
+  MOBILE_JWT_SECRET: ci-mobile-secret
+  NEXTAUTH_URL: http://127.0.0.1:3000
+
+jobs:
+  contract:
+    name: Contract and Fixture Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate iOS fixture mirror
+        run: npm run fixtures:ios:sync
+
+      - name: Ensure generated iOS fixture stayed in sync
+        run: git diff --exit-code -- apps/ios/FairShareApp/Sources/ParityFixtures.swift
+
+      - name: Validate contract coverage
+        run: npm run contract:check
+
+  api:
+    name: API Parity
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fairshare
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare database
+        run: |
+          npm run db:generate
+          npm run db:migrate
+          npm run db:seed
+
+      - name: Build web backend
+        run: npm run build
+
+      - name: Run fixture-backed mobile API parity tests
+        env:
+          TEST_URL: http://127.0.0.1:3000
+        run: |
+          npm run start &
+          node packages/contracts/scripts/wait-for-url.mjs
+          npm run test:api
+
+  web:
+    name: Web Parity
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: fairshare
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Prepare database
+        run: |
+          npm run db:generate
+          npm run db:migrate
+          npm run db:seed
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Run full web e2e suite
+        env:
+          TEST_URL: http://127.0.0.1:3000
+        run: |
+          npm run start &
+          node packages/contracts/scripts/wait-for-url.mjs
+          npm run test:web
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parity-playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  ios:
+    name: iOS Parity
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Regenerate Xcode project
+        run: |
+          cd apps/ios
+          xcodegen generate
+
+      - name: Run iOS unit and UI tests
+        run: xcodebuild test -project apps/ios/FairShare.xcodeproj -scheme FairShare -destination 'platform=iOS Simulator,name=iPhone 17 Pro'

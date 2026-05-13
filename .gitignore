@@ -9,6 +9,7 @@
 
 # next.js
 /.next/
+/apps/web/.next/
 /out/
 
 # production
@@ -27,6 +28,7 @@ yarn-error.log*
 .env
 .env*.local
 !.env.example
+!apps/web/.env.example
 
 # vercel
 .vercel
@@ -40,10 +42,13 @@ next-env.d.ts
 
 # uploads
 /public/uploads
+/apps/web/public/uploads
 
 # Playwright
 /playwright-report
 /test-results
-tests/e2e/setup/.auth-a.json
-tests/e2e/setup/.auth-b.json
-tests/e2e/setup/.credentials.json
+/apps/web/playwright-report
+/apps/web/test-results
+apps/web/tests/e2e/setup/.auth-a.json
+apps/web/tests/e2e/setup/.auth-b.json
+apps/web/tests/e2e/setup/.credentials.json

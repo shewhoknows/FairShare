@@ -1,0 +1,757 @@
+openapi: 3.1.0
+info:
+  title: FairShare Mobile API
+  version: 1.0.0
+  description: Shared mobile/backend contract used to preserve parity between web-backed APIs and the native iOS client.
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/mobile/auth/login:
+    post:
+      summary: Sign in a mobile user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated mobile session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/mobile/auth/register:
+    post:
+      summary: Register a mobile user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registered mobile session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/mobile/auth/me:
+    get:
+      summary: Read the current mobile user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/mobile/dashboard:
+    get:
+      summary: Read the mobile dashboard aggregate.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/mobile/groups:
+    get:
+      summary: List visible groups.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Group summaries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create a group.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: Created group.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/mobile/groups/{id}:
+    get:
+      summary: Read a group with balances.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntityId'
+      responses:
+        '200':
+          description: Group detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/mobile/groups/{id}/members:
+    post:
+      summary: Add a member by email.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberRequest'
+      responses:
+        '201':
+          description: Added member.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/mobile/expenses:
+    get:
+      summary: List visible expenses.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: groupId
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Expense list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpensesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Create an expense.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '201':
+          description: Created expense.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/mobile/expenses/{id}:
+    get:
+      summary: Read an expense.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntityId'
+      responses:
+        '200':
+          description: Expense detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update an expense.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '200':
+          description: Updated expense.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Soft-delete an expense.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntityId'
+      responses:
+        '200':
+          description: Deleted expense.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/mobile/transactions:
+    post:
+      summary: Record a settlement transaction.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Created transaction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    EntityId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: User cannot access the resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Existing resource conflicts with the request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    User:
+      type: object
+      required: [id, name, email, image]
+      properties:
+        id:
+          type: string
+        name:
+          type: [string, 'null']
+        email:
+          type: [string, 'null']
+          format: email
+        image:
+          type: [string, 'null']
+    Member:
+      type: object
+      required: [userId, role, joinedAt, user]
+      properties:
+        userId:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MEMBER]
+        joinedAt:
+          type: [string, 'null']
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+    GroupSummary:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ExpenseSplit:
+      type: object
+      required: [userId, amount, percentage, shares, user]
+      properties:
+        userId:
+          type: string
+        amount:
+          type: number
+        percentage:
+          type: [number, 'null']
+        shares:
+          type: [integer, 'null']
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/User'
+            - type: 'null'
+    Expense:
+      type: object
+      required:
+        - id
+        - description
+        - amount
+        - currency
+        - date
+        - category
+        - groupId
+        - group
+        - paidById
+        - paidBy
+        - splitType
+        - notes
+        - splits
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        date:
+          type: string
+          format: date-time
+        category:
+          type: string
+        groupId:
+          type: [string, 'null']
+        group:
+          oneOf:
+            - $ref: '#/components/schemas/GroupSummary'
+            - type: 'null'
+        paidById:
+          type: string
+        paidBy:
+          oneOf:
+            - $ref: '#/components/schemas/User'
+            - type: 'null'
+        splitType:
+          type: string
+          enum: [EQUAL, EXACT, PERCENTAGE, SHARES]
+        notes:
+          type: [string, 'null']
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseSplit'
+    Group:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - image
+        - currency
+        - category
+        - memberCount
+        - expenseCount
+        - members
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        image:
+          type: [string, 'null']
+        currency:
+          type: string
+        category:
+          type: string
+        memberCount:
+          type: integer
+        expenseCount:
+          type: integer
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+        expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+    Balance:
+      type: object
+      required: [user, amount]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        amount:
+          type: number
+    NetBalance:
+      type: object
+      required: [userId, name, image, netAmount]
+      properties:
+        userId:
+          type: string
+        name:
+          type: [string, 'null']
+        image:
+          type: [string, 'null']
+        netAmount:
+          type: number
+    SimplifiedDebt:
+      type: object
+      required: [fromId, toId, amount, fromName, toName]
+      properties:
+        fromId:
+          type: string
+        toId:
+          type: string
+        amount:
+          type: number
+        fromName:
+          type: [string, 'null']
+        toName:
+          type: [string, 'null']
+    GroupBalances:
+      type: object
+      required: [netBalances, simplifiedDebts]
+      properties:
+        netBalances:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetBalance'
+        simplifiedDebts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimplifiedDebt'
+    Transaction:
+      type: object
+      required: [id, amount, currency, note, group, sender, receiver, createdAt]
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        note:
+          type: [string, 'null']
+        group:
+          oneOf:
+            - $ref: '#/components/schemas/GroupSummary'
+            - type: 'null'
+        sender:
+          $ref: '#/components/schemas/User'
+        receiver:
+          $ref: '#/components/schemas/User'
+        createdAt:
+          type: string
+          format: date-time
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    UserResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+    DashboardResponse:
+      type: object
+      required: [balances, totalOwed, totalOwe, currency, recentExpenses, groups]
+      properties:
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/Balance'
+        totalOwed:
+          type: number
+        totalOwe:
+          type: number
+        currency:
+          type: string
+        recentExpenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+    GroupsResponse:
+      type: object
+      required: [groups]
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+    GroupEnvelope:
+      type: object
+      required: [group]
+      properties:
+        group:
+          $ref: '#/components/schemas/Group'
+    GroupResponse:
+      type: object
+      required: [group, balances]
+      properties:
+        group:
+          $ref: '#/components/schemas/Group'
+        balances:
+          oneOf:
+            - $ref: '#/components/schemas/GroupBalances'
+            - type: 'null'
+    MemberResponse:
+      type: object
+      required: [member]
+      properties:
+        member:
+          $ref: '#/components/schemas/Member'
+    ExpensesResponse:
+      type: object
+      required: [expenses]
+      properties:
+        expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expense'
+    ExpenseResponse:
+      type: object
+      required: [expense]
+      properties:
+        expense:
+          $ref: '#/components/schemas/Expense'
+    TransactionResponse:
+      type: object
+      required: [transaction]
+      properties:
+        transaction:
+          $ref: '#/components/schemas/Transaction'
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+    CreateGroupRequest:
+      type: object
+      required: [name, currency, category]
+      properties:
+        name:
+          type: string
+        description:
+          type: [string, 'null']
+        currency:
+          type: string
+        category:
+          type: string
+    AddMemberRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    CreateSplitRequest:
+      type: object
+      required: [userId, amount]
+      properties:
+        userId:
+          type: string
+        amount:
+          type: number
+        percentage:
+          type: [number, 'null']
+        shares:
+          type: [integer, 'null']
+    CreateExpenseRequest:
+      type: object
+      required:
+        - description
+        - amount
+        - currency
+        - date
+        - category
+        - paidById
+        - splitType
+        - splits
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        date:
+          type: string
+          format: date-time
+        category:
+          type: string
+        groupId:
+          type: [string, 'null']
+        paidById:
+          type: string
+        splitType:
+          type: string
+          enum: [EQUAL, EXACT, PERCENTAGE, SHARES]
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateSplitRequest'
+        notes:
+          type: [string, 'null']
+    CreateTransactionRequest:
+      type: object
+      required: [amount]
+      properties:
+        receiverId:
+          type: [string, 'null']
+        senderId:
+          type: [string, 'null']
+        amount:
+          type: number
+        currency:
+          type: [string, 'null']
+        groupId:
+          type: [string, 'null']
+        note:
+          type: [string, 'null']
