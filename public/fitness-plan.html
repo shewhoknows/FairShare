@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3-Week Fitness Plan</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    .card {
+      max-width: 860px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.10);
+      padding: 36px 32px 32px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: .82rem;
+      letter-spacing: .18em;
+      color: #666;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      margin-bottom: 24px;
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .78rem;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    .progress-bar-bg {
+      background: #e8e8e4;
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #2d6a4f;
+      border-radius: 99px;
+      transition: width .4s ease;
+    }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    thead th {
+      background: #f0ede6;
+      font-weight: 700;
+      padding: 10px 8px;
+      text-align: center;
+      border: 1px solid #ddd;
+      white-space: nowrap;
+    }
+    thead th:first-child { text-align: left; padding-left: 12px; }
+
+    tbody tr { border: 1px solid #ddd; }
+    tbody tr:hover { background: #fafaf7; }
+
+    td {
+      padding: 7px 8px;
+      border: 1px solid #e0ddd6;
+      text-align: center;
+      vertical-align: middle;
+    }
+    td:first-child { text-align: left; padding-left: 12px; font-weight: 500; }
+
+    /* today highlight */
+    tr.today td { background: #fff9e6; }
+    tr.today td:first-child { border-left: 3px solid #f5a623; }
+
+    /* rest day */
+    tr.rest-day td:first-child { color: #999; font-style: italic; font-weight: 400; }
+    tr.rest-day td { color: #aaa; }
+
+    /* week separator */
+    tr.week-start td { border-top: 2px solid #bbb; font-weight: 700; }
+
+    /* final row */
+    tr.final-row td { font-weight: 700; border-top: 2px solid #999; }
+
+    /* ── Checkboxes ── */
+    .cb-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    input[type="checkbox"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px; height: 22px;
+      border: 2px solid #bbb;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      transition: background .15s, border-color .15s;
+      flex-shrink: 0;
+    }
+    input[type="checkbox"]:checked {
+      background: #2d6a4f;
+      border-color: #2d6a4f;
+    }
+    input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 5px; top: 2px;
+      width: 8px; height: 13px;
+      border: 2.5px solid #fff;
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
+    }
+    input[type="checkbox"]:disabled {
+      opacity: .25;
+      cursor: default;
+    }
+
+    /* ── Weight input ── */
+    .weight-input {
+      width: 64px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 3px 5px;
+      font-size: .85rem;
+      text-align: center;
+      color: #333;
+      background: #fafafa;
+    }
+    .weight-input:focus { outline: none; border-color: #2d6a4f; background: #fff; }
+    .weight-input::placeholder { color: #bbb; }
+
+    .dash { color: #ccc; font-size: 1.1rem; }
+
+    /* ── Routines ── */
+    .routines {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 28px;
+    }
+    @media (max-width: 560px) { .routines { grid-template-columns: 1fr; } }
+
+    .routine-box {
+      border: 1.5px solid #d4cfbf;
+      border-radius: 6px;
+      padding: 16px 18px;
+    }
+    .routine-box h3 {
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .routine-box .rounds {
+      font-size: .76rem;
+      color: #888;
+      margin-bottom: 10px;
+    }
+    .routine-box ul {
+      list-style: disc;
+      padding-left: 18px;
+      font-size: .84rem;
+      line-height: 1.7;
+      color: #333;
+    }
+
+    /* ── Goal banner ── */
+    .goal-banner {
+      margin-top: 24px;
+      background: #1a1a1a;
+      color: #fff;
+      text-align: center;
+      padding: 14px;
+      border-radius: 4px;
+      font-size: .92rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+
+    /* ── Footer note ── */
+    .footer-note {
+      margin-top: 18px;
+      text-align: center;
+      font-size: .76rem;
+      color: #999;
+      font-style: italic;
+    }
+
+    /* ── Reset button ── */
+    .reset-wrap {
+      text-align: right;
+      margin-bottom: 16px;
+    }
+    .reset-btn {
+      font-size: .75rem;
+      color: #999;
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .reset-btn:hover { color: #c0392b; border-color: #c0392b; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>3-Week Fitness Plan</h1>
+  <p class="subtitle">May 21 — June 12, 2026</p>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Overall progress</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="reset-wrap">
+    <button class="reset-btn" onclick="resetAll()">Reset all data</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="plan-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Workout</th>
+          <th>Strength</th>
+          <th>Walk 30 min</th>
+          <th>Eat 11:30–6:30</th>
+          <th>Protein 80g+</th>
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody id="plan-body"></tbody>
+    </table>
+  </div>
+
+  <div class="routines">
+    <div class="routine-box">
+      <h3>Routine A · Lower + Core</h3>
+      <p class="rounds">3 rounds, 30–45s rest between rounds</p>
+      <ul>
+        <li>Bodyweight squats — 15 reps</li>
+        <li>Reverse lunges — 10 each leg</li>
+        <li>Glute bridges — 15 reps</li>
+        <li>Plank — 30–45 sec</li>
+        <li>Bicycle crunches — 20 total</li>
+      </ul>
+    </div>
+    <div class="routine-box">
+      <h3>Routine B · Upper + Core</h3>
+      <p class="rounds">3 rounds, 30–45s rest between rounds</p>
+      <ul>
+        <li>Push-ups — 10–12 reps</li>
+        <li>Bent-over rows — 12 reps</li>
+        <li>Shoulder taps — 20 total</li>
+        <li>Superman hold — 30 sec</li>
+        <li>Dead bug — 10 each side</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="goal-banner">START: 61 kg &nbsp;→&nbsp; TARGET: 57–58 kg by JUNE 12</div>
+
+  <p class="footer-note">
+    Push close to failure on the final round · Walk 15 min fasted morning + 15 min post-dinner · 2–3 L water daily
+  </p>
+</div>
+
+<script>
+  // ── Plan data ─────────────────────────────────────────────────────────────
+  // type: 'full' | 'rest' | 'final'
+  // strength: true = show checkbox, false = show dash
+  // weighIn: true = show weight input
+  const PLAN = [
+    // Week 1
+    { id:'2026-05-21', label:'Thu May 21', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:true  },
+    { id:'2026-05-22', label:'Fri May 22', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-05-23', label:'Sat May 23', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-05-24', label:'Sun May 24', workout:'Walk only (rest)',    type:'rest',  strength:false, weighIn:false },
+    // Week 2 start
+    { id:'2026-05-25', label:'Mon May 25', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:true,  weekStart:true },
+    { id:'2026-05-26', label:'Tue May 26', workout:'Walk only',          type:'full',  strength:false, weighIn:false },
+    { id:'2026-05-27', label:'Wed May 27', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-05-28', label:'Thu May 28', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-05-29', label:'Fri May 29', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-05-30', label:'Sat May 30', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-05-31', label:'Sun May 31', workout:'Walk only (rest)',    type:'rest',  strength:false, weighIn:false },
+    // Week 3 start
+    { id:'2026-06-01', label:'Mon Jun 1',  workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:true,  weekStart:true },
+    { id:'2026-06-02', label:'Tue Jun 2',  workout:'Walk only',          type:'full',  strength:false, weighIn:false },
+    { id:'2026-06-03', label:'Wed Jun 3',  workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-06-04', label:'Thu Jun 4',  workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-06-05', label:'Fri Jun 5',  workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-06-06', label:'Sat Jun 6',  workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-06-07', label:'Sun Jun 7',  workout:'Walk only (rest)',    type:'rest',  strength:false, weighIn:false },
+    // Final week
+    { id:'2026-06-08', label:'Mon Jun 8',  workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:true,  weekStart:true },
+    { id:'2026-06-09', label:'Tue Jun 9',  workout:'Walk only',          type:'full',  strength:false, weighIn:false },
+    { id:'2026-06-10', label:'Wed Jun 10', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-06-11', label:'Thu Jun 11', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
+    { id:'2026-06-12', label:'Fri Jun 12', workout:'FINAL WEIGH-IN',     type:'final', strength:false, weighIn:true  },
+  ];
+
+  const STORAGE_KEY = 'fitness_plan_v1';
+  const CHECKBOXES  = ['strength', 'walk', 'eat', 'protein'];
+
+  // ── Storage helpers ────────────────────────────────────────────────────────
+  function loadData() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+    catch { return {}; }
+  }
+  function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  // ── Today ─────────────────────────────────────────────────────────────────
+  function todayId() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // ── Build table ────────────────────────────────────────────────────────────
+  function buildTable() {
+    const data   = loadData();
+    const today  = todayId();
+    const tbody  = document.getElementById('plan-body');
+    tbody.innerHTML = '';
+
+    PLAN.forEach(row => {
+      const tr = document.createElement('tr');
+      const isToday   = row.id === today;
+      const isFinal   = row.type === 'final';
+      const isRest    = row.type === 'rest';
+
+      if (isToday)         tr.classList.add('today');
+      if (isRest)          tr.classList.add('rest-day');
+      if (row.weekStart)   tr.classList.add('week-start');
+      if (isFinal)         tr.classList.add('final-row');
+
+      // Date cell
+      const tdDate = document.createElement('td');
+      tdDate.textContent = row.label + (isToday ? ' ◀ today' : '');
+      tr.appendChild(tdDate);
+
+      // Workout cell
+      const tdWork = document.createElement('td');
+      tdWork.style.textAlign = 'left';
+      tdWork.textContent = row.workout;
+      tr.appendChild(tdWork);
+
+      // Checkbox columns: strength, walk, eat, protein
+      const cbCols = [
+        { key: 'strength', show: row.strength && !isFinal },
+        { key: 'walk',     show: !isFinal },
+        { key: 'eat',      show: !isFinal },
+        { key: 'protein',  show: !isFinal },
+      ];
+
+      cbCols.forEach(({ key, show }) => {
+        const td = document.createElement('td');
+        if (show) {
+          const wrap = document.createElement('div');
+          wrap.className = 'cb-wrap';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.id   = `${row.id}_${key}`;
+          cb.checked = !!(data[row.id] && data[row.id][key]);
+          cb.addEventListener('change', () => {
+            const d = loadData();
+            if (!d[row.id]) d[row.id] = {};
+            d[row.id][key] = cb.checked;
+            saveData(d);
+            updateProgress();
+          });
+          wrap.appendChild(cb);
+          td.appendChild(wrap);
+        } else {
+          td.innerHTML = '<span class="dash">—</span>';
+        }
+        tr.appendChild(td);
+      });
+
+      // Weight cell
+      const tdW = document.createElement('td');
+      if (row.weighIn) {
+        const inp = document.createElement('input');
+        inp.type        = 'text';
+        inp.className   = 'weight-input';
+        inp.placeholder = '__.__';
+        inp.value       = (data[row.id] && data[row.id].weight) ? data[row.id].weight : '';
+        inp.inputMode   = 'decimal';
+        inp.addEventListener('input', () => {
+          const d = loadData();
+          if (!d[row.id]) d[row.id] = {};
+          d[row.id].weight = inp.value;
+          saveData(d);
+        });
+        // append " kg" label
+        const span = document.createElement('span');
+        span.style.fontSize = '.8rem';
+        span.style.color    = '#888';
+        span.style.marginLeft = '3px';
+        span.textContent = 'kg';
+        tdW.appendChild(inp);
+        tdW.appendChild(span);
+      } else {
+        tdW.innerHTML = '<span class="dash">—</span>';
+      }
+      tr.appendChild(tdW);
+
+      tbody.appendChild(tr);
+    });
+
+    updateProgress();
+    scrollToToday();
+  }
+
+  // ── Progress ───────────────────────────────────────────────────────────────
+  function updateProgress() {
+    const data = loadData();
+    let total = 0, checked = 0;
+
+    PLAN.forEach(row => {
+      if (row.type === 'final') return;
+      if (row.strength) { total++; if (data[row.id]?.strength) checked++; }
+      if (row.type !== 'final') {
+        // walk
+        total++; if (data[row.id]?.walk) checked++;
+        // eat, protein only on non-rest days? Actually the image shows all days get eat/protein checkboxes
+        total++; if (data[row.id]?.eat) checked++;
+        total++; if (data[row.id]?.protein) checked++;
+      }
+    });
+
+    const pct = total ? Math.round(checked / total * 100) : 0;
+    document.getElementById('progress-pct').textContent  = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+  }
+
+  // ── Scroll to today ────────────────────────────────────────────────────────
+  function scrollToToday() {
+    const el = document.querySelector('tr.today');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // ── Reset ──────────────────────────────────────────────────────────────────
+  function resetAll() {
+    if (!confirm('Clear all saved progress and weight data?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    buildTable();
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  buildTable();
+</script>
+</body>
+</html>
