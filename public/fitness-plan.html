@@ -16,7 +16,7 @@
     }
 
     .card {
-      max-width: 860px;
+      max-width: 820px;
       margin: 0 auto;
       background: #fff;
       border-radius: 4px;
@@ -43,9 +43,7 @@
     }
 
     /* ── Progress bar ── */
-    .progress-wrap {
-      margin-bottom: 24px;
-    }
+    .progress-wrap { margin-bottom: 24px; }
     .progress-label {
       display: flex;
       justify-content: space-between;
@@ -66,6 +64,19 @@
       transition: width .4s ease;
     }
 
+    /* ── Reset button ── */
+    .reset-wrap { text-align: right; margin-bottom: 12px; }
+    .reset-btn {
+      font-size: .75rem;
+      color: #999;
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .reset-btn:hover { color: #c0392b; border-color: #c0392b; }
+
     /* ── Table ── */
     .table-wrap { overflow-x: auto; }
 
@@ -78,37 +89,38 @@
     thead th {
       background: #f0ede6;
       font-weight: 700;
-      padding: 10px 8px;
+      padding: 10px 10px;
       text-align: center;
       border: 1px solid #ddd;
       white-space: nowrap;
     }
-    thead th:first-child { text-align: left; padding-left: 12px; }
-
-    tbody tr { border: 1px solid #ddd; }
-    tbody tr:hover { background: #fafaf7; }
+    thead th:first-child  { text-align: left; padding-left: 14px; }
+    thead th:nth-child(2) { text-align: left; }
 
     td {
-      padding: 7px 8px;
+      padding: 8px 10px;
       border: 1px solid #e0ddd6;
       text-align: center;
       vertical-align: middle;
     }
-    td:first-child { text-align: left; padding-left: 12px; font-weight: 500; }
+    td:first-child  { text-align: left; padding-left: 14px; font-weight: 500; white-space: nowrap; }
+    td:nth-child(2) { text-align: left; }
 
-    /* today highlight */
-    tr.today td { background: #fff9e6; }
-    tr.today td:first-child { border-left: 3px solid #f5a623; }
+    tbody tr:hover { background: #fafaf8; }
 
-    /* rest day */
-    tr.rest-day td:first-child { color: #999; font-style: italic; font-weight: 400; }
-    tr.rest-day td { color: #aaa; }
+    /* today */
+    tr.today td               { background: #fff9e6 !important; }
+    tr.today td:first-child   { border-left: 3px solid #f5a623; }
 
-    /* week separator */
-    tr.week-start td { border-top: 2px solid #bbb; font-weight: 700; }
+    /* rest days */
+    tr.rest-day td            { color: #aaa; }
+    tr.rest-day td:first-child{ color: #999; font-style: italic; font-weight: 400; }
+
+    /* weigh-in rows */
+    tr.weigh-in td            { background: #fdf8ee; font-weight: 700; }
 
     /* final row */
-    tr.final-row td { font-weight: 700; border-top: 2px solid #999; }
+    tr.final-row td           { border-top: 2px solid #999; font-weight: 700; }
 
     /* ── Checkboxes ── */
     .cb-wrap {
@@ -141,14 +153,11 @@
       border-top: none; border-left: none;
       transform: rotate(45deg);
     }
-    input[type="checkbox"]:disabled {
-      opacity: .25;
-      cursor: default;
-    }
 
-    /* ── Weight input ── */
+    /* ── Weight cell ── */
+    .weight-cell { white-space: nowrap; }
     .weight-input {
-      width: 64px;
+      width: 62px;
       border: 1px solid #ccc;
       border-radius: 4px;
       padding: 3px 5px;
@@ -159,6 +168,7 @@
     }
     .weight-input:focus { outline: none; border-color: #2d6a4f; background: #fff; }
     .weight-input::placeholder { color: #bbb; }
+    .weight-unit { font-size: .8rem; color: #888; margin-left: 2px; }
 
     .dash { color: #ccc; font-size: 1.1rem; }
 
@@ -166,7 +176,7 @@
     .routines {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
+      gap: 14px;
       margin-top: 28px;
     }
     @media (max-width: 560px) { .routines { grid-template-columns: 1fr; } }
@@ -174,31 +184,31 @@
     .routine-box {
       border: 1.5px solid #d4cfbf;
       border-radius: 6px;
-      padding: 16px 18px;
+      padding: 14px 16px;
     }
     .routine-box h3 {
-      font-size: .78rem;
+      font-size: .76rem;
       font-weight: 800;
       letter-spacing: .12em;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .routine-box .rounds {
-      font-size: .76rem;
+      font-size: .74rem;
       color: #888;
-      margin-bottom: 10px;
+      margin-bottom: 9px;
     }
     .routine-box ul {
       list-style: disc;
-      padding-left: 18px;
-      font-size: .84rem;
-      line-height: 1.7;
+      padding-left: 17px;
+      font-size: .83rem;
+      line-height: 1.72;
       color: #333;
     }
 
     /* ── Goal banner ── */
     .goal-banner {
-      margin-top: 24px;
+      margin-top: 22px;
       background: #1a1a1a;
       color: #fff;
       text-align: center;
@@ -209,30 +219,13 @@
       letter-spacing: .06em;
     }
 
-    /* ── Footer note ── */
     .footer-note {
-      margin-top: 18px;
+      margin-top: 16px;
       text-align: center;
       font-size: .76rem;
       color: #999;
       font-style: italic;
     }
-
-    /* ── Reset button ── */
-    .reset-wrap {
-      text-align: right;
-      margin-bottom: 16px;
-    }
-    .reset-btn {
-      font-size: .75rem;
-      color: #999;
-      background: none;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      padding: 4px 10px;
-      cursor: pointer;
-    }
-    .reset-btn:hover { color: #c0392b; border-color: #c0392b; }
   </style>
 </head>
 <body>
@@ -255,15 +248,13 @@
   </div>
 
   <div class="table-wrap">
-    <table id="plan-table">
+    <table>
       <thead>
         <tr>
           <th>Date</th>
           <th>Workout</th>
           <th>Strength</th>
-          <th>Walk 30 min</th>
-          <th>Eat 11:30–6:30</th>
-          <th>Protein 80g+</th>
+          <th>Walk 30min</th>
           <th>Weight</th>
         </tr>
       </thead>
@@ -274,7 +265,7 @@
   <div class="routines">
     <div class="routine-box">
       <h3>Routine A · Lower + Core</h3>
-      <p class="rounds">3 rounds, 30–45s rest between rounds</p>
+      <p class="rounds">3 rounds, 30–45s rest</p>
       <ul>
         <li>Bodyweight squats — 15 reps</li>
         <li>Reverse lunges — 10 each leg</li>
@@ -285,7 +276,7 @@
     </div>
     <div class="routine-box">
       <h3>Routine B · Upper + Core</h3>
-      <p class="rounds">3 rounds, 30–45s rest between rounds</p>
+      <p class="rounds">3 rounds, 30–45s rest</p>
       <ul>
         <li>Push-ups — 10–12 reps</li>
         <li>Bent-over rows — 12 reps</li>
@@ -294,155 +285,185 @@
         <li>Dead bug — 10 each side</li>
       </ul>
     </div>
+    <div class="routine-box">
+      <h3>Routine C · Glutes &amp; Legs</h3>
+      <p class="rounds">3 rounds, 30–45s rest</p>
+      <ul>
+        <li>Sumo squats — 15 reps</li>
+        <li>Single-leg glute bridges — 10 each</li>
+        <li>Curtsy lunges — 10 each leg</li>
+        <li>Side-lying leg raises — 12 each side</li>
+        <li>Wall sit — 30–45 sec</li>
+      </ul>
+    </div>
+    <div class="routine-box">
+      <h3>Routine D · Pilates Core</h3>
+      <p class="rounds">3 rounds, slow &amp; controlled</p>
+      <ul>
+        <li>Bird dog — 10 each side</li>
+        <li>Side plank — 20–30 sec each</li>
+        <li>Glute bridge with march — 10 each</li>
+        <li>Russian twists — 20 total</li>
+        <li>Single-leg balance — 30 sec each</li>
+      </ul>
+    </div>
   </div>
 
   <div class="goal-banner">START: 61 kg &nbsp;→&nbsp; TARGET: 57–58 kg by JUNE 12</div>
-
-  <p class="footer-note">
-    Push close to failure on the final round · Walk 15 min fasted morning + 15 min post-dinner · 2–3 L water daily
-  </p>
+  <p class="footer-note">Push close to failure on the final round · Walk 15 min fasted morning + 15 min post-dinner · 2–3 L water daily</p>
 </div>
 
 <script>
-  // ── Plan data ─────────────────────────────────────────────────────────────
+  // ── Plan ──────────────────────────────────────────────────────────────────
   // type: 'full' | 'rest' | 'final'
-  // strength: true = show checkbox, false = show dash
-  // weighIn: true = show weight input
+  // strength: show strength checkbox
+  // weighIn: show weight input
+  // weighDefault: pre-fill value (known start weight)
+  // bold: bold workout text
   const PLAN = [
-    // Week 1
-    { id:'2026-05-21', label:'Thu May 21', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:true  },
-    { id:'2026-05-22', label:'Fri May 22', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-05-23', label:'Sat May 23', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-05-24', label:'Sun May 24', workout:'Walk only (rest)',    type:'rest',  strength:false, weighIn:false },
-    // Week 2 start
-    { id:'2026-05-25', label:'Mon May 25', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:true,  weekStart:true },
-    { id:'2026-05-26', label:'Tue May 26', workout:'Walk only',          type:'full',  strength:false, weighIn:false },
-    { id:'2026-05-27', label:'Wed May 27', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-05-28', label:'Thu May 28', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-05-29', label:'Fri May 29', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-05-30', label:'Sat May 30', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-05-31', label:'Sun May 31', workout:'Walk only (rest)',    type:'rest',  strength:false, weighIn:false },
-    // Week 3 start
-    { id:'2026-06-01', label:'Mon Jun 1',  workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:true,  weekStart:true },
-    { id:'2026-06-02', label:'Tue Jun 2',  workout:'Walk only',          type:'full',  strength:false, weighIn:false },
-    { id:'2026-06-03', label:'Wed Jun 3',  workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-06-04', label:'Thu Jun 4',  workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-06-05', label:'Fri Jun 5',  workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-06-06', label:'Sat Jun 6',  workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-06-07', label:'Sun Jun 7',  workout:'Walk only (rest)',    type:'rest',  strength:false, weighIn:false },
-    // Final week
-    { id:'2026-06-08', label:'Mon Jun 8',  workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:true,  weekStart:true },
-    { id:'2026-06-09', label:'Tue Jun 9',  workout:'Walk only',          type:'full',  strength:false, weighIn:false },
-    { id:'2026-06-10', label:'Wed Jun 10', workout:'Routine A + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-06-11', label:'Thu Jun 11', workout:'Routine B + Walk',   type:'full',  strength:true,  weighIn:false },
-    { id:'2026-06-12', label:'Fri Jun 12', workout:'FINAL WEIGH-IN',     type:'final', strength:false, weighIn:true  },
+    { id:'2026-05-21', label:'Thu May 21', workout:'Routine A + Walk',  type:'full',  strength:true,  weighIn:true,  weighDefault:'61.0', bold:true  },
+    { id:'2026-05-22', label:'Fri May 22', workout:'Routine B + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-05-23', label:'Sat May 23', workout:'Routine A + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-05-24', label:'Sun May 24', workout:'Walk only (rest)',   type:'rest',  strength:false, weighIn:false                                   },
+    { id:'2026-05-25', label:'Mon May 25', workout:'Routine C + Walk',  type:'full',  strength:true,  weighIn:false, bold:true                        },
+    { id:'2026-05-26', label:'Tue May 26', workout:'Routine D + Walk',  type:'full',  strength:true,  weighIn:false, bold:true                        },
+    { id:'2026-05-27', label:'Wed May 27', workout:'Walk only (rest)',   type:'rest',  strength:false, weighIn:false                                   },
+    { id:'2026-05-28', label:'Thu May 28', workout:'Routine B + Walk',  type:'full',  strength:true,  weighIn:true,  bold:true, weighIn_highlight:true },
+    { id:'2026-05-29', label:'Fri May 29', workout:'Routine C + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-05-30', label:'Sat May 30', workout:'Routine A + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-05-31', label:'Sun May 31', workout:'Walk only (rest)',   type:'rest',  strength:false, weighIn:false                                   },
+    { id:'2026-06-01', label:'Mon Jun 1',  workout:'Routine D + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-06-02', label:'Tue Jun 2',  workout:'Routine B + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-06-03', label:'Wed Jun 3',  workout:'Walk only (rest)',   type:'rest',  strength:false, weighIn:false                                   },
+    { id:'2026-06-04', label:'Thu Jun 4',  workout:'Routine C + Walk',  type:'full',  strength:true,  weighIn:true,  bold:true, weighIn_highlight:true },
+    { id:'2026-06-05', label:'Fri Jun 5',  workout:'Routine A + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-06-06', label:'Sat Jun 6',  workout:'Routine D + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-06-07', label:'Sun Jun 7',  workout:'Walk only (rest)',   type:'rest',  strength:false, weighIn:false                                   },
+    { id:'2026-06-08', label:'Mon Jun 8',  workout:'Routine B + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-06-09', label:'Tue Jun 9',  workout:'Routine C + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-06-10', label:'Wed Jun 10', workout:'Walk only (rest)',   type:'rest',  strength:false, weighIn:false                                   },
+    { id:'2026-06-11', label:'Thu Jun 11', workout:'Routine A + Walk',  type:'full',  strength:true,  weighIn:false                                   },
+    { id:'2026-06-12', label:'Fri Jun 12', workout:'FINAL WEIGH-IN',    type:'final', strength:false, weighIn:true                                    },
   ];
 
-  const STORAGE_KEY = 'fitness_plan_v1';
-  const CHECKBOXES  = ['strength', 'walk', 'eat', 'protein'];
+  const STORAGE_KEY = 'fitness_plan_v2';
 
-  // ── Storage helpers ────────────────────────────────────────────────────────
   function loadData() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
     catch { return {}; }
   }
-  function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
+  function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
 
-  // ── Today ─────────────────────────────────────────────────────────────────
   function todayId() {
     const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,'0');
-    const day = String(d.getDate()).padStart(2,'0');
-    return `${y}-${m}-${day}`;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
   // ── Build table ────────────────────────────────────────────────────────────
   function buildTable() {
-    const data   = loadData();
-    const today  = todayId();
-    const tbody  = document.getElementById('plan-body');
+    const data  = loadData();
+    const today = todayId();
+    const tbody = document.getElementById('plan-body');
     tbody.innerHTML = '';
 
     PLAN.forEach(row => {
       const tr = document.createElement('tr');
-      const isToday   = row.id === today;
-      const isFinal   = row.type === 'final';
-      const isRest    = row.type === 'rest';
+      if (row.id === today)         tr.classList.add('today');
+      if (row.type === 'rest')      tr.classList.add('rest-day');
+      if (row.weighIn_highlight)    tr.classList.add('weigh-in');
+      if (row.type === 'final')     tr.classList.add('final-row');
 
-      if (isToday)         tr.classList.add('today');
-      if (isRest)          tr.classList.add('rest-day');
-      if (row.weekStart)   tr.classList.add('week-start');
-      if (isFinal)         tr.classList.add('final-row');
-
-      // Date cell
+      // Date
       const tdDate = document.createElement('td');
-      tdDate.textContent = row.label + (isToday ? ' ◀ today' : '');
+      tdDate.textContent = row.label + (row.id === today ? ' ◀' : '');
       tr.appendChild(tdDate);
 
-      // Workout cell
+      // Workout
       const tdWork = document.createElement('td');
-      tdWork.style.textAlign = 'left';
       tdWork.textContent = row.workout;
+      if (row.bold) tdWork.style.fontWeight = '700';
       tr.appendChild(tdWork);
 
-      // Checkbox columns: strength, walk, eat, protein
-      const cbCols = [
-        { key: 'strength', show: row.strength && !isFinal },
-        { key: 'walk',     show: !isFinal },
-        { key: 'eat',      show: !isFinal },
-        { key: 'protein',  show: !isFinal },
-      ];
+      // Strength checkbox
+      const tdStr = document.createElement('td');
+      if (row.strength) {
+        const wrap = document.createElement('div');
+        wrap.className = 'cb-wrap';
+        const cb = document.createElement('input');
+        cb.type    = 'checkbox';
+        cb.checked = !!(data[row.id]?.strength);
+        cb.addEventListener('change', () => {
+          const d = loadData();
+          if (!d[row.id]) d[row.id] = {};
+          d[row.id].strength = cb.checked;
+          saveData(d);
+          updateProgress();
+        });
+        wrap.appendChild(cb);
+        tdStr.appendChild(wrap);
+      } else {
+        tdStr.innerHTML = '<span class="dash">—</span>';
+      }
+      tr.appendChild(tdStr);
 
-      cbCols.forEach(({ key, show }) => {
-        const td = document.createElement('td');
-        if (show) {
-          const wrap = document.createElement('div');
-          wrap.className = 'cb-wrap';
-          const cb = document.createElement('input');
-          cb.type = 'checkbox';
-          cb.id   = `${row.id}_${key}`;
-          cb.checked = !!(data[row.id] && data[row.id][key]);
-          cb.addEventListener('change', () => {
-            const d = loadData();
-            if (!d[row.id]) d[row.id] = {};
-            d[row.id][key] = cb.checked;
-            saveData(d);
-            updateProgress();
-          });
-          wrap.appendChild(cb);
-          td.appendChild(wrap);
-        } else {
-          td.innerHTML = '<span class="dash">—</span>';
-        }
-        tr.appendChild(td);
-      });
+      // Walk checkbox (all rows except final)
+      const tdWalk = document.createElement('td');
+      if (row.type !== 'final') {
+        const wrap = document.createElement('div');
+        wrap.className = 'cb-wrap';
+        const cb = document.createElement('input');
+        cb.type    = 'checkbox';
+        cb.checked = !!(data[row.id]?.walk);
+        cb.addEventListener('change', () => {
+          const d = loadData();
+          if (!d[row.id]) d[row.id] = {};
+          d[row.id].walk = cb.checked;
+          saveData(d);
+          updateProgress();
+        });
+        wrap.appendChild(cb);
+        tdWalk.appendChild(wrap);
+      } else {
+        // Final row: walk checkbox still shown per image
+        const wrap = document.createElement('div');
+        wrap.className = 'cb-wrap';
+        const cb = document.createElement('input');
+        cb.type    = 'checkbox';
+        cb.checked = !!(data[row.id]?.walk);
+        cb.addEventListener('change', () => {
+          const d = loadData();
+          if (!d[row.id]) d[row.id] = {};
+          d[row.id].walk = cb.checked;
+          saveData(d);
+          updateProgress();
+        });
+        wrap.appendChild(cb);
+        tdWalk.appendChild(wrap);
+      }
+      tr.appendChild(tdWalk);
 
-      // Weight cell
+      // Weight
       const tdW = document.createElement('td');
+      tdW.className = 'weight-cell';
       if (row.weighIn) {
         const inp = document.createElement('input');
         inp.type        = 'text';
         inp.className   = 'weight-input';
-        inp.placeholder = '__.__';
-        inp.value       = (data[row.id] && data[row.id].weight) ? data[row.id].weight : '';
         inp.inputMode   = 'decimal';
+        inp.placeholder = '__.__';
+        // Use saved value, falling back to default (start weight)
+        inp.value = data[row.id]?.weight ?? (row.weighDefault || '');
         inp.addEventListener('input', () => {
           const d = loadData();
           if (!d[row.id]) d[row.id] = {};
           d[row.id].weight = inp.value;
           saveData(d);
         });
-        // append " kg" label
-        const span = document.createElement('span');
-        span.style.fontSize = '.8rem';
-        span.style.color    = '#888';
-        span.style.marginLeft = '3px';
-        span.textContent = 'kg';
+        const unit = document.createElement('span');
+        unit.className   = 'weight-unit';
+        unit.textContent = 'kg';
         tdW.appendChild(inp);
-        tdW.appendChild(span);
+        tdW.appendChild(unit);
       } else {
         tdW.innerHTML = '<span class="dash">—</span>';
       }
@@ -452,35 +473,24 @@
     });
 
     updateProgress();
-    scrollToToday();
+
+    // Scroll today into view
+    const todayRow = tbody.querySelector('tr.today');
+    if (todayRow) todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // ── Progress ───────────────────────────────────────────────────────────────
   function updateProgress() {
     const data = loadData();
     let total = 0, checked = 0;
-
     PLAN.forEach(row => {
-      if (row.type === 'final') return;
       if (row.strength) { total++; if (data[row.id]?.strength) checked++; }
-      if (row.type !== 'final') {
-        // walk
-        total++; if (data[row.id]?.walk) checked++;
-        // eat, protein only on non-rest days? Actually the image shows all days get eat/protein checkboxes
-        total++; if (data[row.id]?.eat) checked++;
-        total++; if (data[row.id]?.protein) checked++;
-      }
+      // walk counts for all rows (including final and rest)
+      total++; if (data[row.id]?.walk) checked++;
     });
-
     const pct = total ? Math.round(checked / total * 100) : 0;
     document.getElementById('progress-pct').textContent  = pct + '%';
     document.getElementById('progress-fill').style.width = pct + '%';
-  }
-
-  // ── Scroll to today ────────────────────────────────────────────────────────
-  function scrollToToday() {
-    const el = document.querySelector('tr.today');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // ── Reset ──────────────────────────────────────────────────────────────────
@@ -490,7 +500,6 @@
     buildTable();
   }
 
-  // ── Init ───────────────────────────────────────────────────────────────────
   buildTable();
 </script>
 </body>
