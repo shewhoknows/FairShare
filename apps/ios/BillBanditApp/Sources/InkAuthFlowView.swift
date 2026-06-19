@@ -31,6 +31,16 @@ struct InkAuthProfileDraft: Equatable {
 struct InkAuthFlowView: View {
     @EnvironmentObject private var liveOverrides: LiveDesignOverrides
 
+    private static let testPhoneNumber = "+15555550100"
+    private static let testOTPCode = "123456"
+    private static var shouldPrefillQACredentials: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--prefill-qa-auth")
+        #else
+        false
+        #endif
+    }
+
     let step: InkAuthFlowStep
     var isSubmitting = false
     var message: String?
@@ -47,7 +57,7 @@ struct InkAuthFlowView: View {
     var onBack: (() -> Void)?
 
     @State private var identifier: String
-    @State private var otpCode = ""
+    @State private var otpCode: String
     @State private var profile: InkAuthProfileDraft
 
     init(
@@ -80,20 +90,25 @@ struct InkAuthFlowView: View {
         self.onBack = onBack
 
         let initialIdentifier: String
+        let initialOTPCode: String
         let initialProfile: InkAuthProfileDraft
         switch step {
         case .start:
-            initialIdentifier = ""
+            initialIdentifier = Self.shouldPrefillQACredentials ? Self.testPhoneNumber : ""
+            initialOTPCode = ""
             initialProfile = .empty
         case .verify(let identifier):
             initialIdentifier = identifier
+            initialOTPCode = Self.shouldPrefillQACredentials ? Self.testOTPCode : ""
             initialProfile = .empty
         case .completeProfile(let identifier, let draft):
             initialIdentifier = identifier ?? ""
+            initialOTPCode = ""
             initialProfile = draft
         }
 
         _identifier = State(initialValue: initialIdentifier)
+        _otpCode = State(initialValue: initialOTPCode)
         _profile = State(initialValue: initialProfile)
     }
 
@@ -168,10 +183,11 @@ struct InkAuthFlowView: View {
     private func syncState(with step: InkAuthFlowStep) {
         switch step {
         case .start:
+            identifier = Self.shouldPrefillQACredentials ? Self.testPhoneNumber : ""
             otpCode = ""
         case .verify(let identifier):
             self.identifier = identifier
-            otpCode = ""
+            otpCode = Self.shouldPrefillQACredentials ? Self.testOTPCode : ""
         case .completeProfile(let identifier, let draft):
             self.identifier = identifier ?? self.identifier
             profile = draft
@@ -719,14 +735,14 @@ private extension String {
 }
 
 #Preview("Ink OTP") {
-    InkAuthFlowView(step: .verify(identifier: "meera@billbandit.app"))
+    InkAuthFlowView(step: .verify(identifier: "+15555550100"))
         .environmentObject(LiveDesignOverrides.disabled)
 }
 
 #Preview("Ink Profile") {
     InkAuthFlowView(
         step: .completeProfile(
-            identifier: "meera@billbandit.app",
+            identifier: "+15555550100",
             draft: InkAuthProfileDraft(name: "Meera Kapoor", preferredName: "Meera", upiID: "meera@upi")
         )
     )

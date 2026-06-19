@@ -20,6 +20,7 @@
     "test:web": "npm --workspace apps/web run test:e2e",
     "test:e2e": "npm --workspace apps/web run test:e2e",
     "test:e2e:report": "npm --workspace apps/web run test:e2e:report",
+    "smoke:production-mobile": "npm --workspace apps/web run smoke:production-mobile",
     "contract:check": "node packages/contracts/scripts/validate-contract.mjs",
     "fixtures:ios:sync": "node packages/contracts/scripts/sync-ios-fixtures.mjs"
   }

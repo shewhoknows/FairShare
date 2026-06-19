@@ -17,6 +17,7 @@
     "test:api": "tsx tests/api/parity-api.test.ts",
     "test:mobile-auth": "tsx tests/api/mobile-auth.test.ts",
     "test:mobile-ledger": "tsx tests/api/mobile-ledger-flows.test.ts",
+    "smoke:production-mobile": "tsx tests/api/production-mobile-smoke.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report"
   },

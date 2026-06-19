@@ -23,7 +23,7 @@ The MVP goal finishes when the ink iOS app can complete the locked ledger surfac
 - Done: A TestFlight export options file and release checklist are available.
 - Done: Sign in with Apple is enabled on the Apple Developer App ID.
 - Done: Railway production variables include the mobile JWT secret and Apple audience values for `com.eshabhoon.fairshare`.
-- Done: GoDaddy DNS records for `billbandit-api.contenthelper.in` are saved, Railway domain verification is complete, and the HTTPS certificate is issued.
+- Needs attention: `billbandit-api.contenthelper.in` still exists in Railway, but the active registry delegation for `contenthelper.in` currently points to Cloudflare nameservers, where the `billbandit-api` CNAME/TXT records were not visible during the latest release smoke. Add the Railway records at the active DNS provider before public/TestFlight release, or use the documented host-header smoke fallback only for internal verification.
 - Done: Resend production OTP email is configured through `BillBandit <otp@send.contenthelper.in>`, the `send.contenthelper.in` sending domain is verified, and a live OTP email was delivered via the mobile API.
 - Remaining before TestFlight upload: confirm the distribution signing profile for `com.eshabhoon.fairshare` and upload an App Store Connect-accepted build number.
 
@@ -36,4 +36,5 @@ The MVP goal finishes when the ink iOS app can complete the locked ledger surfac
 - `npm run test:api`
 - `npm run test:mobile-ledger`
 - `npm --workspace apps/web run test:mobile-auth`
+- `MOBILE_AUTH_SMOKE_IDENTIFIER="+15555550199" MOBILE_AUTH_SMOKE_OTP_CODE="123456" npm run smoke:production-mobile`
 - XcodeBuildMCP simulator build/test for `BillBandit`
