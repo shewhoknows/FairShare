@@ -37,4 +37,9 @@ The MVP goal finishes when the ink iOS app can complete the locked ledger surfac
 - `npm run test:mobile-ledger`
 - `npm --workspace apps/web run test:mobile-auth`
 - `MOBILE_AUTH_SMOKE_IDENTIFIER="+15555550199" MOBILE_AUTH_SMOKE_OTP_CODE="123456" npm run smoke:production-mobile`
+- `npm run release:prove`
 - XcodeBuildMCP simulator build/test for `BillBandit`
+
+`npm run release:prove` generates `release-evidence/<timestamp>/report.md` and
+must clearly separate passed gates, release blockers, warnings, and manual App
+Store/account actions.

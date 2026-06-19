@@ -43,8 +43,13 @@ Use `-authenticationKeyPath`, `-authenticationKeyID`, and `-authenticationKeyIss
 - `npm run test:mobile-ledger`
 - `npm --workspace apps/web run test:mobile-auth`
 - `MOBILE_AUTH_SMOKE_IDENTIFIER="+15555550199" MOBILE_AUTH_SMOKE_OTP_CODE="123456" npm run smoke:production-mobile`
+- `npm run release:prove`
 - Xcode simulator build/test for `BillBandit`
 - Manual smoke on a build pointed at the same API URL used for archive
+
+The release factory writes its output to `release-evidence/<timestamp>/`. Read
+`report.md` first; it is the release decision record. The build is not
+TestFlight-ready while that report contains any `blocker` gate.
 
 ## Railway Custom Domain
 

@@ -21,6 +21,9 @@
     "test:e2e": "npm --workspace apps/web run test:e2e",
     "test:e2e:report": "npm --workspace apps/web run test:e2e:report",
     "smoke:production-mobile": "npm --workspace apps/web run smoke:production-mobile",
+    "release:prove": "node scripts/release-factory/release-prove.mjs",
+    "release:doctor": "node scripts/release-factory/release-prove.mjs --doctor-only",
+    "release:ios-inspect": "node scripts/release-factory/release-prove.mjs --ios-inspect-only",
     "contract:check": "node packages/contracts/scripts/validate-contract.mjs",
     "fixtures:ios:sync": "node packages/contracts/scripts/sync-ios-fixtures.mjs"
   }
