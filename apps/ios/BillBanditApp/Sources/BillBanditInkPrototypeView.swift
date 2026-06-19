@@ -202,6 +202,10 @@ final class InkTripStore: ObservableObject {
         self.localUserID = trips.first?.friends.first?.id ?? UUID().uuidString
     }
 
+    static func demoTrips() -> [InkTrip] {
+        seedTrips()
+    }
+
     var currentUserID: String { remoteUser?.id ?? localUserID }
     var currentUserName: String { remoteUser?.displayName ?? "You" }
     var isRemoteBacked: Bool { apiClient != nil && remoteUser != nil }
@@ -771,7 +775,7 @@ final class InkTripStore: ObservableObject {
 
 struct BillBanditInkPrototypeView: View {
     @State private var screen: InkScreen
-    @StateObject private var store = InkTripStore()
+    @StateObject private var store: InkTripStore
     @State private var selectedTripID: String?
     @State private var editingTripID: String?
     @State private var tripDraft = InkTripDraft.fresh
@@ -791,6 +795,8 @@ struct BillBanditInkPrototypeView: View {
         onWelcomeCreateAccount: (() -> Void)? = nil
     ) {
         _screen = State(initialValue: initialScreen)
+        let demoTrips = ProcessInfo.processInfo.arguments.contains("--ink-demo-data") ? InkTripStore.demoTrips() : []
+        _store = StateObject(wrappedValue: InkTripStore(trips: demoTrips))
         self.apiClient = apiClient
         self.currentUser = currentUser
         self.onWelcomeLogin = onWelcomeLogin

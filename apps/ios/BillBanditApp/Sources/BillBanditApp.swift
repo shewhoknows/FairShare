@@ -39,7 +39,7 @@ private struct AuthenticatedBillBanditRootView: View {
     let options: AppLaunchOptions
 
     @State private var signedOutDestination: SignedOutDestination
-    @State private var authStep = InkAuthFlowStep.start
+    @State private var authStep: InkAuthFlowStep
     @State private var authMessage: String?
     @State private var isSubmitting = false
     @State private var didStartRestore = false
@@ -47,24 +47,29 @@ private struct AuthenticatedBillBanditRootView: View {
     init(options: AppLaunchOptions) {
         self.options = options
         _signedOutDestination = State(initialValue: options.startsAtAuth ? .auth : .welcome)
+        _authStep = State(initialValue: options.authInitialStep)
     }
 
     var body: some View {
         Group {
-            switch authStore.state {
-            case .restoring:
+            if options.forcesAuthLoading {
                 InkAuthLoadingView()
-            case .signedOut:
-                signedOutView
-            case .signedIn(let user):
-                if user.isProfileComplete == true {
-                    BillBanditInkPrototypeView(
-                        initialScreen: .tripsEmpty,
-                        apiClient: authStore.apiClient,
-                        currentUser: user
-                    )
-                } else {
-                    authFlow(profileUser: user)
+            } else {
+                switch authStore.state {
+                case .restoring:
+                    InkAuthLoadingView()
+                case .signedOut:
+                    signedOutView
+                case .signedIn(let user):
+                    if user.isProfileComplete == true {
+                        BillBanditInkPrototypeView(
+                            initialScreen: .tripsEmpty,
+                            apiClient: authStore.apiClient,
+                            currentUser: user
+                        )
+                    } else {
+                        authFlow(profileUser: user)
+                    }
                 }
             }
         }
@@ -326,7 +331,36 @@ private struct AppLaunchOptions: Equatable {
     }
 
     var startsAtAuth: Bool {
-        arguments.contains("--root=auth")
+        arguments.contains("--root=auth") || arguments.contains { $0.hasPrefix("--ink-auth-step=") }
+    }
+
+    var forcesAuthLoading: Bool {
+        arguments.contains("--root=auth-loading")
+    }
+
+    var authInitialStep: InkAuthFlowStep {
+        guard let rawValue = arguments.first(where: { $0.hasPrefix("--ink-auth-step=") })?
+            .dropFirst("--ink-auth-step=".count)
+        else {
+            return .start
+        }
+
+        let identifier = "meera.docs@example.com"
+        switch String(rawValue) {
+        case "verify":
+            return .verify(identifier: identifier)
+        case "profile":
+            return .completeProfile(
+                identifier: identifier,
+                draft: InkAuthProfileDraft(
+                    name: "Meera Kapoor",
+                    preferredName: "Meera",
+                    upiID: ""
+                )
+            )
+        default:
+            return .start
+        }
     }
 
     var resetsAuthSession: Bool {
