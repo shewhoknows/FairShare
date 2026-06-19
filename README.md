@@ -1,4 +1,4 @@
-# FairShare 💰
+# BillBandit 💰
 
 > A production-ready Splitwise clone built with Next.js 14, Prisma, PostgreSQL, and Railway.
 
@@ -29,16 +29,16 @@ Split expenses fairly with friends, roommates, and travel companions. Track bala
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/YOUR_USERNAME/fairshare.git
-cd fairshare
+git clone https://github.com/YOUR_USERNAME/billbandit.git
+cd billbandit
 ```
 
 ### 2. Copy and fill in environment variables
 ```bash
-cp .env.example .env
+cp apps/web/.env.example apps/web/.env
 ```
 
-Edit `.env`:
+Edit `apps/web/.env`:
 ```env
 DATABASE_URL="<auto-set by Railway>"
 NEXTAUTH_SECRET="generate-with: openssl rand -base64 32"
@@ -76,11 +76,11 @@ Login with: `alice@example.com` / `password123`
 npm install
 
 # 2. Set up database (PostgreSQL required)
-cp .env.example .env
-# Edit DATABASE_URL in .env
+cp apps/web/.env.example apps/web/.env
+# Edit DATABASE_URL in apps/web/.env
 
 # 3. Run migrations and seed
-npx prisma migrate dev --name init
+npm run db:push
 npm run db:seed
 
 # 4. Start dev server
@@ -91,77 +91,115 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ### iOS app
 
-The native iOS MVP lives in `ios/` and is generated with XcodeGen.
+The native iOS MVP lives in `apps/ios/` and is generated with XcodeGen.
 
 ```bash
 # From the repo root
 npm install
-cp .env.example .env
+cp apps/web/.env.example apps/web/.env
 # Fill DATABASE_URL, NEXTAUTH_SECRET, and MOBILE_JWT_SECRET
 npm run db:push
 npm run dev
 
 # In another terminal
-cd ios
+cd apps/ios
 xcodegen generate
-xcodebuild -project FairShare.xcodeproj -scheme FairShare -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project BillBandit.xcodeproj -scheme BillBandit -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
-Debug iOS builds use `http://localhost:3000` from `ios/Config/Debug.xcconfig`. Update `ios/Config/Release.xcconfig` with your deployed HTTPS backend before making a release build.
+Debug iOS builds use `http://localhost:3000` from `apps/ios/Config/Debug.xcconfig`. Update `apps/ios/Config/Release.xcconfig` with your deployed HTTPS backend before making a release build.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-fairshare/
-├── app/
-│   ├── (auth)/
-│   │   ├── sign-in/          # Email + Google sign-in
-│   │   └── sign-up/          # Registration
-│   ├── (dashboard)/
-│   │   ├── layout.tsx         # Auth-protected layout with sidebar
-│   │   ├── dashboard/         # Home: balances + recent expenses
-│   │   ├── groups/            # Groups list + [id] group detail
-│   │   ├── friends/           # Friend list + add friends
-│   │   └── activity/          # Activity feed
-│   ├── api/
-│   │   ├── auth/[...nextauth] # NextAuth handler
-│   │   ├── groups/            # CRUD + members + balances
-│   │   ├── expenses/          # CRUD + comments
-│   │   ├── friends/           # Add/list friends
-│   │   ├── balances/          # Global balance view
-│   │   ├── transactions/      # Record settlements
-│   │   ├── activity/          # Activity feed
-│   │   └── export/csv/        # CSV export
-│   ├── layout.tsx             # Root layout (SessionProvider, Toaster)
-│   └── page.tsx               # Landing page
+billbandit/
+├── apps/
+│   ├── web/
+│   │   ├── app/                # Next.js pages and API routes
+│   │   ├── components/         # Shared web UI
+│   │   ├── lib/                # Auth, DTOs, calculations, Prisma access
+│   │   ├── prisma/             # Schema, migrations, fixture-backed seed
+│   │   └── tests/              # API parity and Playwright coverage
+│   └── ios/
+│       ├── BillBanditApp/       # Native app sources, tests, generated fixture mirror
+│       └── project.yml         # XcodeGen project definition
 │
-├── components/
-│   ├── ui/                    # shadcn/ui base components
-│   ├── navigation/            # Sidebar + mobile nav
-│   ├── expenses/              # AddExpenseModal, ExpenseCard
-│   ├── groups/                # CreateGroupModal
-│   ├── balances/              # SettleUpModal
-│   └── friends/               # AddFriendModal
+├── packages/
+│   └── contracts/
+│       ├── openapi.yaml        # Shared mobile/backend contract
+│       ├── fixtures/           # Canonical parity scenarios
+│       └── scripts/            # Contract checks and fixture sync helpers
 │
-├── lib/
-│   ├── prisma.ts              # Prisma singleton
-│   ├── auth.ts                # NextAuth config
-│   ├── utils.ts               # Formatters, constants
-│   ├── validations.ts         # Zod schemas
-│   ├── balance-calculator.ts  # Balance computation
-│   └── algorithms/
-│       └── simplify-debts.ts  # Greedy debt simplification
+├── services/
+│   └── api/README.md           # Explicit API extraction boundary
 │
-├── prisma/
-│   ├── schema.prisma          # Full DB schema
-│   └── seed.ts                # Sample data
-│
-├── middleware.ts              # Protect dashboard routes
+├── package.json                # Workspace orchestration
 ├── railway.toml               # Railway deploy config
 └── .github/workflows/         # CI/CD pipeline
 ```
+
+---
+
+## API Boundary and Parity
+
+The live API remains inside `apps/web/app/api` for now. `services/api/README.md`
+documents that as an explicit backend boundary while `packages/contracts/openapi.yaml`
+acts as the shared cross-platform contract.
+
+Parity proof is fixture-backed:
+
+- `npm run contract:check`
+- `npm run test:api`
+- `npm run test:web`
+- iOS UI coverage in `apps/ios/BillBanditApp/UITests`
+
+The `Feature Parity` GitHub Actions workflow runs those lanes separately for pull
+requests and main-branch pushes.
+
+---
+
+## Reviewer Guide
+
+This repository is intentionally split so the web app and iOS app can evolve
+independently while still proving that shared user journeys behave the same.
+
+Review in this order:
+
+1. `packages/contracts/openapi.yaml`
+   Defines the shared backend contract that both clients are expected to honor.
+2. `packages/contracts/fixtures/parity-fixtures.json`
+   Holds the canonical users, groups, expenses, and debts used for parity checks.
+3. `apps/web/prisma/seed.ts` and `apps/web/tests/api/parity-api.test.ts`
+   Show how the backend loads those fixtures and verifies API behavior.
+4. `apps/web/tests/e2e/parity-fixtures.spec.ts`
+   Proves the shared fixture scenario renders correctly in the web app.
+5. `apps/ios/BillBanditApp/Sources/ParityFixtures.swift` and
+   `apps/ios/BillBanditApp/UITests/BillBanditUITests.swift`
+   Show the mirrored iOS fixture layer and UI proof.
+6. `.github/workflows/parity.yml`
+   Captures the PR gate that keeps the contract and parity checks honest.
+
+The current backend choice is deliberate: API routes still run inside the Next.js
+app for deployment simplicity, but `services/api/README.md` records the future
+extraction boundary so that move can happen without changing the contract.
+
+---
+
+## Validation Matrix
+
+| Area | What it proves | Command |
+|---|---|---|
+| Contract | OpenAPI file is present, referenced endpoints stay covered, generated fixture mirror stays valid | `npm run fixtures:ios:sync && npm run contract:check` |
+| Backend API | Shared fixture scenarios work through the mobile-facing API surface | `npm run test:api` |
+| Web app | Full browser suite passes, including the fixture-backed parity journey | `npm run test:web` |
+| iOS app | Native project builds and UI tests exercise the mirrored fixture scenario | `cd apps/ios && xcodegen generate`, then `cd ../.. && xcodebuild test -project apps/ios/BillBandit.xcodeproj -scheme BillBandit -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` |
+| Repo health | Type safety, linting, and production build remain intact | `npm run typecheck && npm run lint && npm run build` |
+
+The parity workflow runs the same evidence lanes in CI on pull requests and on
+pushes to `main`, so feature work must keep the web app, iOS app, and shared
+contract aligned.
 
 ---
 
@@ -189,7 +227,7 @@ openssl rand -base64 32
 
 ## 🧮 Debt Simplification Algorithm
 
-FairShare uses a greedy algorithm to minimize transactions:
+BillBandit uses a greedy algorithm to minimize transactions:
 
 1. Calculate each user's **net balance** (positive = owed money, negative = owes money)
 2. Sort creditors (positive) and debtors (negative) by magnitude
@@ -218,12 +256,9 @@ Core models:
 
 ## 🚢 Railway Setup Details
 
-Railway auto-detects Node.js and runs the build command from `railway.toml`:
-
-```toml
-buildCommand = "npm ci && npx prisma generate && npx prisma migrate deploy && npm run build"
-startCommand = "npm run start"
-```
+Railway builds from the root `Dockerfile`, which now installs the workspace,
+generates Prisma from `apps/web/prisma/schema.prisma`, builds the web app, runs
+migrations, and starts the workspace entrypoint.
 
 The `DATABASE_URL` environment variable is automatically injected by Railway's Postgres plugin.
 
@@ -231,4 +266,7 @@ The `DATABASE_URL` environment variable is automatically injected by Railway's P
 
 ## 📝 License
 
-MIT © FairShare
+MIT © BillBandit
+# Deploy trigger Tue May 12 18:41:06 IST 2026
+# Deploy 1778591606
+# Deploy 1778591787

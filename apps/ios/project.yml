@@ -1,0 +1,81 @@
+name: BillBandit
+options:
+  bundleIdPrefix: com.billbandit
+  deploymentTarget:
+    iOS: "26.0"
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: 4JRB53LG5C
+schemes:
+  BillBandit:
+    build:
+      targets:
+        BillBandit: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - BillBanditTests
+        - BillBanditUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+targets:
+  BillBandit:
+    type: application
+    platform: iOS
+    sources:
+      - BillBanditApp/Sources
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eshabhoon.fairshare
+        CODE_SIGN_ENTITLEMENTS: BillBanditApp/Sources/BillBandit.entitlements
+        INFOPLIST_KEY_CFBundleDisplayName: BillBandit
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads: YES
+        INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_127.0.0.1_NSExceptionAllowsInsecureHTTPLoads: YES
+    info:
+      path: BillBanditApp/Sources/Info.plist
+      properties:
+        CFBundleDisplayName: BillBandit
+        API_BASE_URL: $(API_BASE_URL)
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSExceptionDomains:
+            localhost:
+              NSExceptionAllowsInsecureHTTPLoads: true
+            127.0.0.1:
+              NSExceptionAllowsInsecureHTTPLoads: true
+  BillBanditTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - BillBanditApp/Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eshabhoon.fairshare.tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: BillBandit
+  BillBanditUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - BillBanditApp/UITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.eshabhoon.fairshare.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: BillBandit

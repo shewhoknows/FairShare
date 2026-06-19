@@ -1,5 +1,7 @@
 # dependencies
 /node_modules
+/apps/web/node_modules
+/ios/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -9,6 +11,7 @@
 
 # next.js
 /.next/
+/apps/web/.next/
 /out/
 
 # production
@@ -27,6 +30,7 @@ yarn-error.log*
 .env
 .env*.local
 !.env.example
+!apps/web/.env.example
 
 # vercel
 .vercel
@@ -40,3 +44,13 @@ next-env.d.ts
 
 # uploads
 /public/uploads
+/apps/web/public/uploads
+
+# Playwright
+/playwright-report
+/test-results
+/apps/web/playwright-report
+/apps/web/test-results
+apps/web/tests/e2e/setup/.auth-a.json
+apps/web/tests/e2e/setup/.auth-b.json
+apps/web/tests/e2e/setup/.credentials.json
