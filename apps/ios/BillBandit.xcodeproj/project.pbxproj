@@ -1,0 +1,608 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		011B72C68DF70422074FE379 /* ExpenseEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F827ACD9E3434B5156CBACF9 /* ExpenseEditorView.swift */; };
+		0479B9FD5B0FA031B5923369 /* SettleUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09C2970D16644F7DFA25BE43 /* SettleUpView.swift */; };
+		22C15020741F70D9B1D54DDC /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9306E39C7E159FA283E171E /* Formatters.swift */; };
+		2EF10781C3F4220A47A7394C /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0552F4B53611F95EB5B90A62 /* DashboardView.swift */; };
+		37CE0E4300724DF788F90656 /* GroupsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D34951491A26E576D171DDD /* GroupsView.swift */; };
+		3A0138E012EDC4ED02F32D36 /* BillBanditApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5E33867B4FDEA34F5BFBF60 /* BillBanditApp.swift */; };
+		46F1561B006C7A8391D7B1A1 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F0F12FB02047AFC25EC83E /* AuthView.swift */; };
+		81B6914C2BACE4BA524992F4 /* MockBillBanditAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B41CB344FB8007B905F7406 /* MockBillBanditAPI.swift */; };
+		8A28DC3DD25E88CBE247D7CC /* PaisaTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3066FC338ACECEDBC4C4BEC2 /* PaisaTheme.swift */; };
+		8AA39CCF977CA25478FC664B /* BillBanditUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64CBA2489E706656D4FFC31 /* BillBanditUITests.swift */; };
+		96FF1F305577F92DC77BBC5C /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBF0183518DE539C5B42421 /* APIClient.swift */; };
+		9B945B5090871AAD5D03E344 /* ParityFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AEEDFB563365FE8B714063 /* ParityFixtures.swift */; };
+		9F9AAA9441D0F5F764E4FA52 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B514692D33336C4A75C73D97 /* Models.swift */; };
+		B4EAA11A7AEE9470F08FDF7A /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7692D7C8A57DBA9D93693D1D /* AuthStore.swift */; };
+		C2B99D49DEBE5803BD52FE78 /* BillBanditInkPrototypeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0223CE1C9C01A2D11533192C /* BillBanditInkPrototypeView.swift */; };
+		D31B909784971A8A35C23682 /* KeychainTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C6EAD56E28BB7131857211 /* KeychainTokenStore.swift */; };
+		D44D073AF6FE8FDA4FF6F21A /* InkAuthFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4652772E8C74349E98AF2FCA /* InkAuthFlowView.swift */; };
+		D8A0EDD2DD6183718C36B820 /* InkReceiptComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E071996C2D6161272DD2715 /* InkReceiptComponents.swift */; };
+		E5B6D6758E771FB15BBC2B77 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46E4B9046848FA53AF6A08F0 /* GroupDetailView.swift */; };
+		E66FBD25A9DC01854279A1E3 /* BillBanditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A44EE3A1CA4C2D1B6C319F /* BillBanditTests.swift */; };
+		E7E25A1D4766CF377B674CB8 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBC4D221BC69A804845EC851 /* MainTabView.swift */; };
+		F24DDC7F780DA867ACBAE0EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8471BA0AD5C3241B36BB6767 /* Assets.xcassets */; };
+		FE39671EAA574E6F2D99D373 /* BillBanditMascots.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD23BBF3460EF2E1BB4B2BE0 /* BillBanditMascots.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		638B31FBA8733A5E48B7372D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BADD5880512636826A0C3666 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A97DEAB4ED932F578729F58;
+			remoteInfo = BillBandit;
+		};
+		849F8480599379D21DF4F908 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BADD5880512636826A0C3666 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A97DEAB4ED932F578729F58;
+			remoteInfo = BillBandit;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0223CE1C9C01A2D11533192C /* BillBanditInkPrototypeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillBanditInkPrototypeView.swift; sourceTree = "<group>"; };
+		0552F4B53611F95EB5B90A62 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		09C2970D16644F7DFA25BE43 /* SettleUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettleUpView.swift; sourceTree = "<group>"; };
+		0E071996C2D6161272DD2715 /* InkReceiptComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkReceiptComponents.swift; sourceTree = "<group>"; };
+		27A44EE3A1CA4C2D1B6C319F /* BillBanditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillBanditTests.swift; sourceTree = "<group>"; };
+		2B41CB344FB8007B905F7406 /* MockBillBanditAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockBillBanditAPI.swift; sourceTree = "<group>"; };
+		2D34951491A26E576D171DDD /* GroupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupsView.swift; sourceTree = "<group>"; };
+		2E010883E1C8B4AECF8FC59C /* BillBandit.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BillBandit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3066FC338ACECEDBC4C4BEC2 /* PaisaTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaisaTheme.swift; sourceTree = "<group>"; };
+		32FA1D3995648FDB8F21349F /* BillBanditUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BillBanditUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4652772E8C74349E98AF2FCA /* InkAuthFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkAuthFlowView.swift; sourceTree = "<group>"; };
+		46E4B9046848FA53AF6A08F0 /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
+		4D8C60FC951D7BB34C575021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		6ED4E37B1667AEC6352AE9B2 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		755CD3271B8FCB1F86E60D0D /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		7692D7C8A57DBA9D93693D1D /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
+		78AEEDFB563365FE8B714063 /* ParityFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParityFixtures.swift; sourceTree = "<group>"; };
+		8471BA0AD5C3241B36BB6767 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9FBF0183518DE539C5B42421 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		A5E33867B4FDEA34F5BFBF60 /* BillBanditApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillBanditApp.swift; sourceTree = "<group>"; };
+		AD23BBF3460EF2E1BB4B2BE0 /* BillBanditMascots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillBanditMascots.swift; sourceTree = "<group>"; };
+		B514692D33336C4A75C73D97 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B9306E39C7E159FA283E171E /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
+		B9F0F12FB02047AFC25EC83E /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		BBC4D221BC69A804845EC851 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		D80B5FF88B17491F9F09D927 /* BillBanditTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BillBanditTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F3C6EAD56E28BB7131857211 /* KeychainTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainTokenStore.swift; sourceTree = "<group>"; };
+		F64CBA2489E706656D4FFC31 /* BillBanditUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillBanditUITests.swift; sourceTree = "<group>"; };
+		F827ACD9E3434B5156CBACF9 /* ExpenseEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpenseEditorView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		08BE5E2FFDAC71D52A152C26 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				755CD3271B8FCB1F86E60D0D /* Debug.xcconfig */,
+				6ED4E37B1667AEC6352AE9B2 /* Release.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		3C06E742A232DBB1BE16C573 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				27A44EE3A1CA4C2D1B6C319F /* BillBanditTests.swift */,
+			);
+			name = Tests;
+			path = BillBanditApp/Tests;
+			sourceTree = "<group>";
+		};
+		43CFCE9020B34E8BB689E101 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				F64CBA2489E706656D4FFC31 /* BillBanditUITests.swift */,
+			);
+			name = UITests;
+			path = BillBanditApp/UITests;
+			sourceTree = "<group>";
+		};
+		866323B3439371CFB72F0C96 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				9FBF0183518DE539C5B42421 /* APIClient.swift */,
+				8471BA0AD5C3241B36BB6767 /* Assets.xcassets */,
+				7692D7C8A57DBA9D93693D1D /* AuthStore.swift */,
+				B9F0F12FB02047AFC25EC83E /* AuthView.swift */,
+				A5E33867B4FDEA34F5BFBF60 /* BillBanditApp.swift */,
+				0223CE1C9C01A2D11533192C /* BillBanditInkPrototypeView.swift */,
+				AD23BBF3460EF2E1BB4B2BE0 /* BillBanditMascots.swift */,
+				0552F4B53611F95EB5B90A62 /* DashboardView.swift */,
+				F827ACD9E3434B5156CBACF9 /* ExpenseEditorView.swift */,
+				B9306E39C7E159FA283E171E /* Formatters.swift */,
+				46E4B9046848FA53AF6A08F0 /* GroupDetailView.swift */,
+				2D34951491A26E576D171DDD /* GroupsView.swift */,
+				4D8C60FC951D7BB34C575021 /* Info.plist */,
+				4652772E8C74349E98AF2FCA /* InkAuthFlowView.swift */,
+				0E071996C2D6161272DD2715 /* InkReceiptComponents.swift */,
+				F3C6EAD56E28BB7131857211 /* KeychainTokenStore.swift */,
+				BBC4D221BC69A804845EC851 /* MainTabView.swift */,
+				2B41CB344FB8007B905F7406 /* MockBillBanditAPI.swift */,
+				B514692D33336C4A75C73D97 /* Models.swift */,
+				3066FC338ACECEDBC4C4BEC2 /* PaisaTheme.swift */,
+				78AEEDFB563365FE8B714063 /* ParityFixtures.swift */,
+				09C2970D16644F7DFA25BE43 /* SettleUpView.swift */,
+			);
+			name = Sources;
+			path = BillBanditApp/Sources;
+			sourceTree = "<group>";
+		};
+		94A216636F7614E64BB4C217 = {
+			isa = PBXGroup;
+			children = (
+				08BE5E2FFDAC71D52A152C26 /* Config */,
+				866323B3439371CFB72F0C96 /* Sources */,
+				3C06E742A232DBB1BE16C573 /* Tests */,
+				43CFCE9020B34E8BB689E101 /* UITests */,
+				CADB6671CC9CACDB7CB0D3D5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CADB6671CC9CACDB7CB0D3D5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2E010883E1C8B4AECF8FC59C /* BillBandit.app */,
+				D80B5FF88B17491F9F09D927 /* BillBanditTests.xctest */,
+				32FA1D3995648FDB8F21349F /* BillBanditUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		02CF10339C583767868AF7B2 /* BillBanditUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C1D2D69489056629EB2DF5A5 /* Build configuration list for PBXNativeTarget "BillBanditUITests" */;
+			buildPhases = (
+				F58D81A9E28F25A76A236DB9 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D499D641CE6C4DB26EE63BA3 /* PBXTargetDependency */,
+			);
+			name = BillBanditUITests;
+			packageProductDependencies = (
+			);
+			productName = BillBanditUITests;
+			productReference = 32FA1D3995648FDB8F21349F /* BillBanditUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		1A97DEAB4ED932F578729F58 /* BillBandit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D1BCB755B4D6EA785F595EE8 /* Build configuration list for PBXNativeTarget "BillBandit" */;
+			buildPhases = (
+				C647B13E83C1FC7AADE8ADDB /* Sources */,
+				223D3D61EF3695E97E399B98 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BillBandit;
+			packageProductDependencies = (
+			);
+			productName = BillBandit;
+			productReference = 2E010883E1C8B4AECF8FC59C /* BillBandit.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4885AABFF75416BF9D9D4BAF /* BillBanditTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D2ED74A55B6306664AD93908 /* Build configuration list for PBXNativeTarget "BillBanditTests" */;
+			buildPhases = (
+				61CAA01CA17262C4C1A91886 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0924B1003DE537BAED923B54 /* PBXTargetDependency */,
+			);
+			name = BillBanditTests;
+			packageProductDependencies = (
+			);
+			productName = BillBanditTests;
+			productReference = D80B5FF88B17491F9F09D927 /* BillBanditTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BADD5880512636826A0C3666 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					02CF10339C583767868AF7B2 = {
+						DevelopmentTeam = 4JRB53LG5C;
+						TestTargetID = 1A97DEAB4ED932F578729F58;
+					};
+					1A97DEAB4ED932F578729F58 = {
+						DevelopmentTeam = 4JRB53LG5C;
+					};
+					4885AABFF75416BF9D9D4BAF = {
+						DevelopmentTeam = 4JRB53LG5C;
+					};
+				};
+			};
+			buildConfigurationList = 13A25D441A643716643EC81B /* Build configuration list for PBXProject "BillBandit" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 94A216636F7614E64BB4C217;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CADB6671CC9CACDB7CB0D3D5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A97DEAB4ED932F578729F58 /* BillBandit */,
+				4885AABFF75416BF9D9D4BAF /* BillBanditTests */,
+				02CF10339C583767868AF7B2 /* BillBanditUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		223D3D61EF3695E97E399B98 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F24DDC7F780DA867ACBAE0EA /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		61CAA01CA17262C4C1A91886 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E66FBD25A9DC01854279A1E3 /* BillBanditTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C647B13E83C1FC7AADE8ADDB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				96FF1F305577F92DC77BBC5C /* APIClient.swift in Sources */,
+				B4EAA11A7AEE9470F08FDF7A /* AuthStore.swift in Sources */,
+				46F1561B006C7A8391D7B1A1 /* AuthView.swift in Sources */,
+				3A0138E012EDC4ED02F32D36 /* BillBanditApp.swift in Sources */,
+				C2B99D49DEBE5803BD52FE78 /* BillBanditInkPrototypeView.swift in Sources */,
+				FE39671EAA574E6F2D99D373 /* BillBanditMascots.swift in Sources */,
+				2EF10781C3F4220A47A7394C /* DashboardView.swift in Sources */,
+				011B72C68DF70422074FE379 /* ExpenseEditorView.swift in Sources */,
+				22C15020741F70D9B1D54DDC /* Formatters.swift in Sources */,
+				E5B6D6758E771FB15BBC2B77 /* GroupDetailView.swift in Sources */,
+				37CE0E4300724DF788F90656 /* GroupsView.swift in Sources */,
+				D44D073AF6FE8FDA4FF6F21A /* InkAuthFlowView.swift in Sources */,
+				D8A0EDD2DD6183718C36B820 /* InkReceiptComponents.swift in Sources */,
+				D31B909784971A8A35C23682 /* KeychainTokenStore.swift in Sources */,
+				E7E25A1D4766CF377B674CB8 /* MainTabView.swift in Sources */,
+				81B6914C2BACE4BA524992F4 /* MockBillBanditAPI.swift in Sources */,
+				9F9AAA9441D0F5F764E4FA52 /* Models.swift in Sources */,
+				8A28DC3DD25E88CBE247D7CC /* PaisaTheme.swift in Sources */,
+				9B945B5090871AAD5D03E344 /* ParityFixtures.swift in Sources */,
+				0479B9FD5B0FA031B5923369 /* SettleUpView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F58D81A9E28F25A76A236DB9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8AA39CCF977CA25478FC664B /* BillBanditUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0924B1003DE537BAED923B54 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A97DEAB4ED932F578729F58 /* BillBandit */;
+			targetProxy = 638B31FBA8733A5E48B7372D /* PBXContainerItemProxy */;
+		};
+		D499D641CE6C4DB26EE63BA3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A97DEAB4ED932F578729F58 /* BillBandit */;
+			targetProxy = 849F8480599379D21DF4F908 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		43CFD4A35357BB7B525FDC32 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BillBandit.app/BillBandit";
+			};
+			name = Release;
+		};
+		4E25B817B0659A5C1932B972 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BillBandit;
+			};
+			name = Release;
+		};
+		5C243CDD95CDD4B7FF4BB072 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 755CD3271B8FCB1F86E60D0D /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = BillBanditApp/Sources/BillBandit.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = BillBanditApp/Sources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BillBandit;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_127.0.0.1_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B5577B6041D37A9910CF3256 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6ED4E37B1667AEC6352AE9B2 /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = BillBanditApp/Sources/BillBandit.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = BillBanditApp/Sources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BillBandit;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_127.0.0.1_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_NSExceptionAllowsInsecureHTTPLoads = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BE811CA7C73225E675F3A191 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BillBandit;
+			};
+			name = Debug;
+		};
+		C8032901B3AD0B65FC7F9056 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4JRB53LG5C;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		EB4B8C12F3978BA27E975300 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4JRB53LG5C;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		F3267E157BF1A291D4320EA5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BillBandit.app/BillBandit";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		13A25D441A643716643EC81B /* Build configuration list for PBXProject "BillBandit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EB4B8C12F3978BA27E975300 /* Debug */,
+				C8032901B3AD0B65FC7F9056 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C1D2D69489056629EB2DF5A5 /* Build configuration list for PBXNativeTarget "BillBanditUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE811CA7C73225E675F3A191 /* Debug */,
+				4E25B817B0659A5C1932B972 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D1BCB755B4D6EA785F595EE8 /* Build configuration list for PBXNativeTarget "BillBandit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5C243CDD95CDD4B7FF4BB072 /* Debug */,
+				B5577B6041D37A9910CF3256 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D2ED74A55B6306664AD93908 /* Build configuration list for PBXNativeTarget "BillBanditTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F3267E157BF1A291D4320EA5 /* Debug */,
+				43CFD4A35357BB7B525FDC32 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BADD5880512636826A0C3666 /* Project object */;
+}

@@ -1,4 +1,4 @@
-# FairShare 💰
+# BillBandit 💰
 
 > A production-ready Splitwise clone built with Next.js 14, Prisma, PostgreSQL, and Railway.
 
@@ -29,8 +29,8 @@ Split expenses fairly with friends, roommates, and travel companions. Track bala
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/YOUR_USERNAME/fairshare.git
-cd fairshare
+git clone https://github.com/YOUR_USERNAME/billbandit.git
+cd billbandit
 ```
 
 ### 2. Copy and fill in environment variables
@@ -104,7 +104,7 @@ npm run dev
 # In another terminal
 cd apps/ios
 xcodegen generate
-xcodebuild -project FairShare.xcodeproj -scheme FairShare -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project BillBandit.xcodeproj -scheme BillBandit -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
 Debug iOS builds use `http://localhost:3000` from `apps/ios/Config/Debug.xcconfig`. Update `apps/ios/Config/Release.xcconfig` with your deployed HTTPS backend before making a release build.
@@ -114,7 +114,7 @@ Debug iOS builds use `http://localhost:3000` from `apps/ios/Config/Debug.xcconfi
 ## 📁 Project Structure
 
 ```
-fairshare/
+billbandit/
 ├── apps/
 │   ├── web/
 │   │   ├── app/                # Next.js pages and API routes
@@ -123,7 +123,7 @@ fairshare/
 │   │   ├── prisma/             # Schema, migrations, fixture-backed seed
 │   │   └── tests/              # API parity and Playwright coverage
 │   └── ios/
-│       ├── FairShareApp/       # Native app sources, tests, generated fixture mirror
+│       ├── BillBanditApp/       # Native app sources, tests, generated fixture mirror
 │       └── project.yml         # XcodeGen project definition
 │
 ├── packages/
@@ -153,7 +153,7 @@ Parity proof is fixture-backed:
 - `npm run contract:check`
 - `npm run test:api`
 - `npm run test:web`
-- iOS UI coverage in `apps/ios/FairShareApp/UITests`
+- iOS UI coverage in `apps/ios/BillBanditApp/UITests`
 
 The `Feature Parity` GitHub Actions workflow runs those lanes separately for pull
 requests and main-branch pushes.
@@ -175,8 +175,8 @@ Review in this order:
    Show how the backend loads those fixtures and verifies API behavior.
 4. `apps/web/tests/e2e/parity-fixtures.spec.ts`
    Proves the shared fixture scenario renders correctly in the web app.
-5. `apps/ios/FairShareApp/Sources/ParityFixtures.swift` and
-   `apps/ios/FairShareApp/UITests/FairShareUITests.swift`
+5. `apps/ios/BillBanditApp/Sources/ParityFixtures.swift` and
+   `apps/ios/BillBanditApp/UITests/BillBanditUITests.swift`
    Show the mirrored iOS fixture layer and UI proof.
 6. `.github/workflows/parity.yml`
    Captures the PR gate that keeps the contract and parity checks honest.
@@ -194,7 +194,7 @@ extraction boundary so that move can happen without changing the contract.
 | Contract | OpenAPI file is present, referenced endpoints stay covered, generated fixture mirror stays valid | `npm run fixtures:ios:sync && npm run contract:check` |
 | Backend API | Shared fixture scenarios work through the mobile-facing API surface | `npm run test:api` |
 | Web app | Full browser suite passes, including the fixture-backed parity journey | `npm run test:web` |
-| iOS app | Native project builds and UI tests exercise the mirrored fixture scenario | `cd apps/ios && xcodegen generate`, then `cd ../.. && xcodebuild test -project apps/ios/FairShare.xcodeproj -scheme FairShare -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` |
+| iOS app | Native project builds and UI tests exercise the mirrored fixture scenario | `cd apps/ios && xcodegen generate`, then `cd ../.. && xcodebuild test -project apps/ios/BillBandit.xcodeproj -scheme BillBandit -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` |
 | Repo health | Type safety, linting, and production build remain intact | `npm run typecheck && npm run lint && npm run build` |
 
 The parity workflow runs the same evidence lanes in CI on pull requests and on
@@ -227,7 +227,7 @@ openssl rand -base64 32
 
 ## 🧮 Debt Simplification Algorithm
 
-FairShare uses a greedy algorithm to minimize transactions:
+BillBandit uses a greedy algorithm to minimize transactions:
 
 1. Calculate each user's **net balance** (positive = owed money, negative = owes money)
 2. Sort creditors (positive) and debtors (negative) by magnitude
@@ -266,7 +266,7 @@ The `DATABASE_URL` environment variable is automatically injected by Railway's P
 
 ## 📝 License
 
-MIT © FairShare
+MIT © BillBandit
 # Deploy trigger Tue May 12 18:41:06 IST 2026
 # Deploy 1778591606
 # Deploy 1778591787

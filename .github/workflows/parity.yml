@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fairshare?schema=public
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/billbandit?schema=public
   NEXTAUTH_SECRET: ci-nextauth-secret
   MOBILE_JWT_SECRET: ci-mobile-secret
   NEXTAUTH_URL: http://127.0.0.1:3000
@@ -32,7 +32,7 @@ jobs:
         run: npm run fixtures:ios:sync
 
       - name: Ensure generated iOS fixture stayed in sync
-        run: git diff --exit-code -- apps/ios/FairShareApp/Sources/ParityFixtures.swift
+        run: git diff --exit-code -- apps/ios/BillBanditApp/Sources/ParityFixtures.swift
 
       - name: Validate contract coverage
         run: npm run contract:check
@@ -44,7 +44,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: fairshare
+          POSTGRES_DB: billbandit
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
         ports:
@@ -74,13 +74,19 @@ jobs:
       - name: Build web backend
         run: npm run build
 
-      - name: Run fixture-backed mobile API parity tests
+      - name: Run fixture-backed API and mobile auth tests
         env:
           TEST_URL: http://127.0.0.1:3000
+          MOBILE_AUTH_TEST_CODE: '123456'
+          MOBILE_AUTH_MOCK_APPLE_TOKEN: ${{ secrets.MOBILE_AUTH_MOCK_APPLE_TOKEN }}
+          MOBILE_AUTH_MOCK_APPLE_SUBJECT: ${{ secrets.MOBILE_AUTH_MOCK_APPLE_SUBJECT }}
+          MOBILE_AUTH_MOCK_APPLE_EMAIL: ${{ secrets.MOBILE_AUTH_MOCK_APPLE_EMAIL }}
         run: |
           npm run start &
           node packages/contracts/scripts/wait-for-url.mjs
           npm run test:api
+          npm run test:mobile-ledger
+          (cd apps/web && npm run test:mobile-auth)
 
   web:
     name: Web Parity
@@ -89,7 +95,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: fairshare
+          POSTGRES_DB: billbandit
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
         ports:
@@ -153,4 +159,4 @@ jobs:
           xcodegen generate
 
       - name: Run iOS unit and UI tests
-        run: xcodebuild test -project apps/ios/FairShare.xcodeproj -scheme FairShare -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+        run: xcodebuild test -project apps/ios/BillBandit.xcodeproj -scheme BillBandit -destination 'platform=iOS Simulator,name=iPhone 17 Pro'

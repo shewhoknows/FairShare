@@ -7,9 +7,9 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FairShare – Split expenses with friends',
+  title: 'BillBandit – Split expenses with friends',
   description:
-    'Track shared expenses, calculate balances, and settle debts with FairShare – a Splitwise-inspired expense sharing app.',
+    'Track shared expenses, calculate balances, and settle debts with BillBandit – a Splitwise-inspired expense sharing app.',
   icons: { icon: '/favicon.ico' },
 }
 

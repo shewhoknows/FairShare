@@ -37,7 +37,7 @@ export function Sidebar() {
         <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
           <Split className="w-4 h-4 text-white" />
         </div>
-        <span className="text-xl font-bold text-gray-900">FairShare</span>
+        <span className="text-xl font-bold text-gray-900">BillBandit</span>
       </div>
 
       {/* Navigation */}

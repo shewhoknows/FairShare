@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
     status: 200,
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="fairshare-export-${Date.now()}.csv"`,
+      'Content-Disposition': `attachment; filename="billbandit-export-${Date.now()}.csv"`,
     },
   })
 }

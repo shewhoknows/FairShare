@@ -3,12 +3,19 @@ export function mobileUser(user: {
   name?: string | null
   email?: string | null
   image?: string | null
+  phone?: string | null
+  preferredName?: string | null
+  upiID?: string | null
 }) {
   return {
     id: user.id,
     name: user.name ?? null,
     email: user.email ?? null,
     image: user.image ?? null,
+    phone: user.phone ?? null,
+    preferredName: user.preferredName ?? null,
+    upiID: user.upiID ?? null,
+    isProfileComplete: Boolean((user.name ?? user.preferredName) && user.upiID),
   }
 }
 
@@ -75,4 +82,3 @@ export function mobileGroup(group: any) {
     updatedAt: group.updatedAt?.toISOString?.() ?? group.updatedAt ?? null,
   }
 }
-

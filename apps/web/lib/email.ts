@@ -89,7 +89,7 @@ export function generateVerificationEmailHtml(token: string, appUrl: string): st
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify your FairShare account</title>
+  <title>Verify your BillBandit account</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -161,7 +161,7 @@ export function generateVerificationEmailHtml(token: string, appUrl: string): st
       <div class="logo-icon">FS</div>
     </div>
     <h1>Verify your email address</h1>
-    <p>Thanks for signing up for FairShare! Please click the button below to verify your email address and complete your registration.</p>
+    <p>Thanks for signing up for BillBandit! Please click the button below to verify your email address and complete your registration.</p>
     <p style="text-align: center;">
       <a href="${verificationUrl}" class="button">Verify Email</a>
     </p>
@@ -169,8 +169,8 @@ export function generateVerificationEmailHtml(token: string, appUrl: string): st
     <p class="link">${verificationUrl}</p>
     <p>This link will expire in 24 hours.</p>
     <div class="footer">
-      <p>If you didn't create an account on FairShare, you can safely ignore this email.</p>
-      <p>&copy; ${new Date().getFullYear()} FairShare. All rights reserved.</p>
+      <p>If you didn't create an account on BillBandit, you can safely ignore this email.</p>
+      <p>&copy; ${new Date().getFullYear()} BillBandit. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -181,17 +181,17 @@ export function generateVerificationEmailHtml(token: string, appUrl: string): st
 export function generateVerificationEmailText(token: string, appUrl: string): string {
   const verificationUrl = `${appUrl}/api/auth/verify-email?token=${token}`
   
-  return `Verify your FairShare account
+  return `Verify your BillBandit account
 
-Thanks for signing up for FairShare! Please click the link below to verify your email address:
+Thanks for signing up for BillBandit! Please click the link below to verify your email address:
 
 ${verificationUrl}
 
 This link will expire in 24 hours.
 
-If you didn't create an account on FairShare, you can safely ignore this email.
+If you didn't create an account on BillBandit, you can safely ignore this email.
 
-© ${new Date().getFullYear()} FairShare. All rights reserved.
+© ${new Date().getFullYear()} BillBandit. All rights reserved.
   `
 }
 
@@ -200,7 +200,7 @@ export async function sendVerificationEmail(email: string, token: string): Promi
   
   return await sendEmail({
     to: email,
-    subject: 'Verify your FairShare account',
+    subject: 'Verify your BillBandit account',
     html: generateVerificationEmailHtml(token, appUrl),
     text: generateVerificationEmailText(token, appUrl),
   })

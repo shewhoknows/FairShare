@@ -41,7 +41,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
               <Split className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">FairShare</span>
+            <span className="text-xl font-bold text-gray-900">BillBandit</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/sign-in">
@@ -65,7 +65,7 @@ export default function LandingPage() {
           <span className="text-teal-600">not friendships</span>
         </h1>
         <p className="text-xl text-gray-500 mb-10 max-w-2xl mx-auto">
-          FairShare makes it easy to track shared expenses and settle debts with friends,
+          BillBandit makes it easy to track shared expenses and settle debts with friends,
           family, and roommates. No spreadsheets needed.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -126,7 +126,7 @@ export default function LandingPage() {
             Ready to split fairly?
           </h2>
           <p className="text-teal-100 mb-8">
-            Join thousands of people who use FairShare to manage shared expenses.
+            Join thousands of people who use BillBandit to manage shared expenses.
           </p>
           <Link href="/sign-up">
             <Button size="lg" className="bg-white text-teal-700 hover:bg-teal-50 gap-2">
@@ -144,9 +144,9 @@ export default function LandingPage() {
             <div className="w-6 h-6 bg-teal-600 rounded flex items-center justify-center">
               <Split className="w-3 h-3 text-white" />
             </div>
-            <span className="text-sm font-semibold text-gray-700">FairShare</span>
+            <span className="text-sm font-semibold text-gray-700">BillBandit</span>
           </div>
-          <p className="text-xs text-gray-400">© 2024 FairShare. Split expenses fairly.</p>
+          <p className="text-xs text-gray-400">© 2024 BillBandit. Split expenses fairly.</p>
         </div>
       </footer>
     </div>

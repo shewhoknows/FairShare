@@ -61,6 +61,29 @@ export async function PUT(
     }
 
     const data = parsed.data
+    if (data.groupId) {
+      const membership = await prisma.groupMember.findUnique({
+        where: { groupId_userId: { groupId: data.groupId, userId: session.user.id } },
+      })
+      if (!membership) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+      const memberIds = (
+        await prisma.groupMember.findMany({
+          where: { groupId: data.groupId },
+          select: { userId: true },
+        })
+      ).map((member) => member.userId)
+
+      for (const split of data.splits) {
+        if (!memberIds.includes(split.userId)) {
+          return NextResponse.json({ error: `User ${split.userId} is not a member of this group` }, { status: 400 })
+        }
+      }
+      if (!memberIds.includes(data.paidById)) {
+        return NextResponse.json({ error: 'Payer is not a member of this group' }, { status: 400 })
+      }
+    }
+
     const splitTotal = data.splits.reduce((sum, split) => sum + split.amount, 0)
     if (Math.abs(splitTotal - data.amount) > 0.02) {
       return NextResponse.json(
@@ -142,4 +165,3 @@ export async function DELETE(
 
   return NextResponse.json({ success: true })
 }
-

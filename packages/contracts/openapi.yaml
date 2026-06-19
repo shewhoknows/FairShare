@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: FairShare Mobile API
+  title: BillBandit Mobile API
   version: 1.0.0
   description: Shared mobile/backend contract used to preserve parity between web-backed APIs and the native iOS client.
 servers:
@@ -58,6 +58,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/mobile/auth/otp/start:
+    post:
+      summary: Start an OTP sign-in challenge.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OTPStartRequest'
+      responses:
+        '200':
+          description: OTP challenge details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OTPChallengeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+  /api/mobile/auth/otp/verify:
+    post:
+      summary: Verify an OTP sign-in challenge.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OTPVerifyRequest'
+      responses:
+        '200':
+          description: Authenticated mobile session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/mobile/auth/apple:
+    post:
+      summary: Sign in with Apple on mobile.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppleSignInRequest'
+      responses:
+        '200':
+          description: Authenticated mobile session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/mobile/auth/profile:
+    put:
+      summary: Update the current mobile user's profile.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteProfileRequest'
+      responses:
+        '200':
+          description: Updated mobile user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /api/mobile/dashboard:
@@ -345,6 +429,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: Request was rate limited.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotImplemented:
+      description: Required delivery provider is not configured.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
     ErrorResponse:
       type: object
@@ -372,9 +468,75 @@ components:
           format: email
         password:
           type: string
+    OTPStartRequest:
+      type: object
+      required: [identifier]
+      properties:
+        identifier:
+          type: string
+          minLength: 3
+    OTPChallengeResponse:
+      type: object
+      required: [challengeId, maskedIdentifier, deliveryChannel, expiresInSeconds, message]
+      properties:
+        challengeId:
+          type: string
+        maskedIdentifier:
+          type: string
+        deliveryChannel:
+          type: string
+          enum: [email, phone]
+        expiresInSeconds:
+          type: integer
+        message:
+          type: string
+    OTPVerifyRequest:
+      type: object
+      required: [challengeId, code]
+      properties:
+        challengeId:
+          type: string
+        code:
+          type: string
+          pattern: '^\d{6}$'
+    AppleSignInRequest:
+      type: object
+      required: [identityToken]
+      properties:
+        identityToken:
+          type: string
+          minLength: 20
+        nonce:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        fullName:
+          type: string
+          minLength: 1
+        authorizationCode:
+          type: string
+        email:
+          type: string
+          format: email
+    CompleteProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        preferredName:
+          type: string
+          minLength: 1
+          maxLength: 40
+        upiID:
+          type: string
+          minLength: 3
+          maxLength: 120
     User:
       type: object
-      required: [id, name, email, image]
+      required: [id, name, email, image, phone, preferredName, upiID, isProfileComplete]
       properties:
         id:
           type: string
@@ -385,6 +547,14 @@ components:
           format: email
         image:
           type: [string, 'null']
+        phone:
+          type: [string, 'null']
+        preferredName:
+          type: [string, 'null']
+        upiID:
+          type: [string, 'null']
+        isProfileComplete:
+          type: boolean
     Member:
       type: object
       required: [userId, role, joinedAt, user]

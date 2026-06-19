@@ -2,18 +2,18 @@ import { chromium, request } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const BASE_URL = process.env.TEST_URL ?? 'https://fairshare-production-e481.up.railway.app'
+const BASE_URL = process.env.TEST_URL ?? 'http://127.0.0.1:3000'
 const ts = Date.now()
 
 export const USER_A = {
   name: 'Test UserA',
-  email: `usera-${ts}@fairshare-test.com`,
+  email: `usera-${ts}@billbandit-test.com`,
   password: 'TestPass123!',
 }
 
 export const USER_B = {
   name: 'Test UserB',
-  email: `userb-${ts}@fairshare-test.com`,
+  email: `userb-${ts}@billbandit-test.com`,
   password: 'TestPass123!',
 }
 
