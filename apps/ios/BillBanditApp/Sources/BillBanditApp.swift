@@ -1,9 +1,11 @@
 import AuthenticationServices
+import Combine
 import SwiftUI
 
 @main
 struct BillBanditApp: App {
     @State private var authStore = AuthStore.live()
+    @StateObject private var liveDesignOverrides = LiveDesignOverrides.cockpit()
     @AppStorage(PaisaAppearanceMode.storageKey) private var appearanceModeRaw = PaisaAppearanceMode.system.rawValue
 
     private var appearanceMode: PaisaAppearanceMode {
@@ -14,8 +16,144 @@ struct BillBanditApp: App {
         WindowGroup {
             RootView()
                 .environment(authStore)
+                .environmentObject(liveDesignOverrides)
                 .preferredColorScheme(appearanceMode.colorScheme)
+                .task {
+                    liveDesignOverrides.startPolling()
+                }
         }
+    }
+}
+
+struct LiveDesignOverrideValue: Codable, Equatable {
+    var kind: String
+    var value: String
+}
+
+private struct LiveDesignOverrideSnapshot: Decodable {
+    var revision: Int
+    var overrides: [String: LiveDesignOverrideValue]
+}
+
+@MainActor
+final class LiveDesignOverrides: ObservableObject {
+    @Published private(set) var revision = 0
+    @Published private var overrides: [String: LiveDesignOverrideValue] = [:]
+
+    static let disabled = LiveDesignOverrides(isEnabled: false)
+
+    private let isEnabled: Bool
+    private let endpoint: URL
+    private var pollTask: Task<Void, Never>?
+
+    init(isEnabled: Bool, endpoint: URL = URL(string: "http://127.0.0.1:8787/api/ios/live-overrides")!) {
+        self.isEnabled = isEnabled
+        self.endpoint = endpoint
+    }
+
+    static func cockpit() -> LiveDesignOverrides {
+        #if DEBUG
+        LiveDesignOverrides(isEnabled: true)
+        #else
+        LiveDesignOverrides(isEnabled: false)
+        #endif
+    }
+
+    func startPolling() {
+        guard isEnabled, pollTask == nil else { return }
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refreshOnce()
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+    }
+
+    func text(_ key: String, fallback: String) -> String {
+        guard let override = overrides[key], override.kind == "text", override.value.isEmpty == false else {
+            return fallback
+        }
+        return override.value
+    }
+
+    func color(_ key: String, fallback: Color) -> Color {
+        guard let override = overrides[key], override.kind == "color", let color = Self.color(from: override.value) else {
+            return fallback
+        }
+        return color
+    }
+
+    func number(_ key: String, fallback: CGFloat) -> CGFloat {
+        guard let override = overrides[key], override.kind == "number", let value = Double(override.value) else {
+            return fallback
+        }
+        return CGFloat(value)
+    }
+
+    func bool(_ key: String, fallback: Bool = false) -> Bool {
+        guard let override = overrides[key], override.kind == "bool" else {
+            return fallback
+        }
+        switch override.value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "true", "1", "yes", "on":
+            return true
+        case "false", "0", "no", "off":
+            return false
+        default:
+            return fallback
+        }
+    }
+
+    private func refreshOnce() async {
+        do {
+            let (data, response) = try await URLSession.shared.data(from: endpoint)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return }
+            let snapshot = try JSONDecoder().decode(LiveDesignOverrideSnapshot.self, from: data)
+            guard snapshot.revision != revision else { return }
+            revision = snapshot.revision
+            overrides = snapshot.overrides
+        } catch {
+            return
+        }
+    }
+
+    private static func color(from rawValue: String) -> Color? {
+        let normalized = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch normalized {
+        case "black": return .black
+        case "white": return .white
+        case "clear", "transparent": return .clear
+        case "blue": return .blue
+        case "red": return .red
+        case "green": return .green
+        case "yellow": return .yellow
+        case "orange": return .orange
+        case "purple": return .purple
+        case "pink": return .pink
+        case "gray", "grey": return .gray
+        default: break
+        }
+
+        let hex = normalized.replacingOccurrences(of: "#", with: "")
+        guard hex.count == 6 || hex.count == 8, let value = UInt64(hex, radix: 16) else {
+            return nil
+        }
+        let red: Double
+        let green: Double
+        let blue: Double
+        let alpha: Double
+        if hex.count == 8 {
+            alpha = Double((value >> 24) & 0xff) / 255.0
+            red = Double((value >> 16) & 0xff) / 255.0
+            green = Double((value >> 8) & 0xff) / 255.0
+            blue = Double(value & 0xff) / 255.0
+        } else {
+            alpha = 1
+            red = Double((value >> 16) & 0xff) / 255.0
+            green = Double((value >> 8) & 0xff) / 255.0
+            blue = Double(value & 0xff) / 255.0
+        }
+        return Color(red: red, green: green, blue: blue, opacity: alpha)
     }
 }
 

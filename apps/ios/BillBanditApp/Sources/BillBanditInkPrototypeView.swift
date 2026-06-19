@@ -774,6 +774,7 @@ final class InkTripStore: ObservableObject {
 }
 
 struct BillBanditInkPrototypeView: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
     @State private var screen: InkScreen
     @StateObject private var store: InkTripStore
     @State private var selectedTripID: String?
@@ -781,6 +782,7 @@ struct BillBanditInkPrototypeView: View {
     @State private var tripDraft = InkTripDraft.fresh
     @State private var editingExpenseID: String?
     @State private var friendReturnScreen = InkScreen.newLedger
+    @State private var pendingSettlement: InkSettlement?
     @State private var didConfigureStore = false
     private let apiClient: APIClient?
     private let currentUser: UserDTO?
@@ -805,7 +807,15 @@ struct BillBanditInkPrototypeView: View {
 
     var body: some View {
         ZStack {
-            Ink.Blue.screen
+            LinearGradient(
+                colors: [
+                    liveOverrides.color("theme.screen.start", fallback: Ink.Blue.blue),
+                    liveOverrides.color("theme.screen.middle", fallback: Ink.Blue.blue2),
+                    liveOverrides.color("theme.screen.end", fallback: Color(red: 0.04, green: 0.12, blue: 0.64))
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
                 .ignoresSafeArea()
 
             currentScreen
@@ -928,15 +938,36 @@ struct BillBanditInkPrototypeView: View {
                 SettleInkScreen(
                     trip: trip,
                     settlements: store.settlements(for: trip),
-                    onRecord: { screen = .recordPayment },
+                    onRecord: { settlement in
+                        pendingSettlement = settlement
+                        screen = .recordPayment
+                    },
                     onTab: handleTab
                 )
             }
         case .recordPayment:
-            RecordPaymentInkScreen(
-                onClose: { screen = .settle },
-                onStamp: { screen = .finalBill }
-            )
+            if let trip = store.trip(id: selectedTripID) ?? store.trips.first,
+               let settlement = pendingSettlement ?? store.settlements(for: trip).first {
+                RecordPaymentInkScreen(
+                    trip: trip,
+                    settlement: settlement,
+                    currentUserID: store.currentUserID,
+                    errorMessage: store.errorMessage,
+                    onClose: { screen = .settle },
+                    onStamp: {
+                        let didRecord = await store.recordSettlement(settlement, in: trip.id)
+                        if didRecord {
+                            pendingSettlement = nil
+                            if let refreshedTrip = store.trip(id: trip.id), store.settlements(for: refreshedTrip).isEmpty {
+                                screen = .finalBill
+                            } else {
+                                screen = .settle
+                            }
+                        }
+                        return didRecord
+                    }
+                )
+            }
         case .finalBill:
             if let trip = store.trip(id: selectedTripID) ?? store.trips.first {
                 FinalBillInkScreen(
@@ -1220,7 +1251,7 @@ private struct InkBottomTabs: View {
     let onSelect: (InkBottomTab) -> Void
 
     private var tabs: [InkBottomTab] {
-        active == .settle ? [.ledger, .settle, .trips] : [.ledger, .trips, .profile]
+        [.ledger, .settle, .trips, .profile]
     }
 
     var body: some View {
@@ -1346,16 +1377,21 @@ private struct ReceiptLabel: View {
 }
 
 private struct SerifTitle: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let text: String
     var size: CGFloat = 34
     var color: Color = Ink.Blue.cream
+    var overrideID: String?
 
     var body: some View {
-        Text(text)
-            .font(Ink.serif(size, weight: .regular))
-            .foregroundStyle(color)
-            .lineLimit(nil)
-            .minimumScaleFactor(0.78)
+        if liveOverrides.bool("\(overrideID ?? "").hidden") == false {
+            Text(liveOverrides.text("\(overrideID ?? "").title", fallback: text))
+                .font(Ink.serif(liveOverrides.number("\(overrideID ?? "").fontSize", fallback: size), weight: .regular))
+                .foregroundStyle(liveOverrides.color("\(overrideID ?? "").color", fallback: color))
+                .lineLimit(nil)
+                .minimumScaleFactor(0.78)
+        }
     }
 }
 
@@ -1392,52 +1428,74 @@ private struct InkStamp: View {
 }
 
 private struct RoundSeal: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let text: String
     var size: CGFloat = 62
     var tone: Color = Ink.Blue.cobalt
+    var overrideID: String?
 
     var body: some View {
-        ZStack {
-            Circle().stroke(tone, lineWidth: 1.5)
-            Circle().stroke(tone.opacity(0.65), lineWidth: 1).padding(5)
-            Text(text.uppercased())
-                .font(Ink.mono(size > 50 ? 10 : 7, weight: .heavy))
-                .tracking(1.0)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(tone)
-                .padding(10)
+        if liveOverrides.bool("\(overrideID ?? "").hidden") == false {
+            let resolvedSize = liveOverrides.number("\(overrideID ?? "").size", fallback: size)
+            let resolvedTone = liveOverrides.color("\(overrideID ?? "").color", fallback: tone)
+            ZStack {
+                Circle().stroke(resolvedTone, lineWidth: 1.5)
+                Circle().stroke(resolvedTone.opacity(0.65), lineWidth: 1).padding(5)
+                Text(liveOverrides.text("\(overrideID ?? "").title", fallback: text).uppercased())
+                    .font(Ink.mono(resolvedSize > 50 ? 10 : 7, weight: .heavy))
+                    .tracking(1.0)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(resolvedTone)
+                    .padding(10)
+            }
+            .frame(width: resolvedSize, height: resolvedSize)
         }
-        .frame(width: size, height: size)
     }
 }
 
 private struct PrimaryCreamButton: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let title: String
     var isLoading = false
     var isDisabled = false
+    var overrideID: String?
     var action: () -> Void
 
+    @ViewBuilder
     var body: some View {
-        Button {
-            guard isDisabled == false, isLoading == false else { return }
-            action()
-        } label: {
-            HStack(spacing: 9) {
-                if isLoading {
-                    ProgressView()
-                        .tint(Ink.Blue.ink)
-                        .controlSize(.small)
+        if liveOverrides.bool("\(overrideID ?? "").hidden") == false {
+            Button {
+                guard isDisabled == false, isLoading == false else { return }
+                action()
+            } label: {
+                HStack(spacing: 9) {
+                    if isLoading {
+                        ProgressView()
+                            .tint(Ink.Blue.ink)
+                            .controlSize(.small)
+                    }
+                    Text(isLoading ? "Saving" : liveOverrides.text("\(overrideID ?? "").title", fallback: title))
+                        .font(Ink.serif(liveOverrides.number("\(overrideID ?? "").fontSize", fallback: 18), weight: .semibold))
                 }
-                Text(isLoading ? "Saving" : title)
-                    .font(Ink.serif(18, weight: .semibold))
+                    .foregroundStyle(
+                        liveOverrides
+                            .color("\(overrideID ?? "").foreground", fallback: Ink.Blue.ink)
+                            .opacity(isDisabled ? 0.52 : 1)
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, liveOverrides.number("\(overrideID ?? "").paddingVertical", fallback: 15))
+                    .background(
+                        liveOverrides
+                            .color("\(overrideID ?? "").background", fallback: Ink.Blue.cream)
+                            .opacity(isDisabled ? 0.55 : 1),
+                        in: Capsule()
+                    )
             }
-                .foregroundStyle(Ink.Blue.ink.opacity(isDisabled ? 0.52 : 1))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(Ink.Blue.cream.opacity(isDisabled ? 0.55 : 1), in: Capsule())
+            .buttonStyle(.plain)
+            .disabled(isDisabled || isLoading)
         }
-        .buttonStyle(.plain)
-        .disabled(isDisabled || isLoading)
     }
 }
 
@@ -1476,36 +1534,49 @@ private struct InkStatusBanner: View {
 }
 
 private struct OutlineCreamButton: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let title: String
+    var overrideID: String?
     var action: () -> Void
 
+    @ViewBuilder
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(Ink.serif(17, weight: .semibold))
-                .foregroundStyle(Ink.Blue.cream)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .overlay(Capsule().stroke(Ink.Blue.cream, lineWidth: 1.3))
+        if liveOverrides.bool("\(overrideID ?? "").hidden") == false {
+            Button(action: action) {
+                let foreground = liveOverrides.color("\(overrideID ?? "").foreground", fallback: Ink.Blue.cream)
+                Text(liveOverrides.text("\(overrideID ?? "").title", fallback: title))
+                    .font(Ink.serif(liveOverrides.number("\(overrideID ?? "").fontSize", fallback: 17), weight: .semibold))
+                    .foregroundStyle(foreground)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, liveOverrides.number("\(overrideID ?? "").paddingVertical", fallback: 15))
+                    .overlay(Capsule().stroke(foreground, lineWidth: 1.3))
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 }
 
 private struct InkBlackButton: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let title: String
+    var overrideID: String?
     var action: () -> Void
 
+    @ViewBuilder
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(Ink.serif(18, weight: .semibold))
-                .foregroundStyle(Ink.Blue.cream)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(Ink.Blue.ink, in: Capsule())
+        if liveOverrides.bool("\(overrideID ?? "").hidden") == false {
+            Button(action: action) {
+                Text(liveOverrides.text("\(overrideID ?? "").title", fallback: title))
+                    .font(Ink.serif(liveOverrides.number("\(overrideID ?? "").fontSize", fallback: 18), weight: .semibold))
+                    .foregroundStyle(liveOverrides.color("\(overrideID ?? "").foreground", fallback: Ink.Blue.cream))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, liveOverrides.number("\(overrideID ?? "").paddingVertical", fallback: 15))
+                    .background(liveOverrides.color("\(overrideID ?? "").background", fallback: Ink.Blue.ink), in: Capsule())
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -1574,6 +1645,7 @@ private struct AvatarStack: View {
                     .overlay(Circle().stroke(Ink.Blue.cream, lineWidth: 1.2))
             }
         }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(names.count) friends")
     }
 }
@@ -1593,52 +1665,68 @@ private struct BarcodeStrip: View {
 }
 
 private struct WelcomeInkScreen: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let onLogin: () -> Void
     let onCreateAccount: () -> Void
 
     var body: some View {
-        InkAppShell(title: "", contentSpacing: 14, showsTopBar: false) {
-            Spacer(minLength: 34)
-            Text("BillBandit")
-                .font(Ink.serif(29, weight: .semibold))
-                .foregroundStyle(Ink.Blue.cream)
+        InkAppShell(
+            title: "",
+            contentSpacing: liveOverrides.number("welcome.contentSpacing", fallback: 14),
+            showsTopBar: false
+        ) {
+            Spacer(minLength: liveOverrides.number("welcome.topSpacer", fallback: 34))
+            if liveOverrides.bool("welcome.brand.hidden") == false {
+                Text(liveOverrides.text("welcome.brand.title", fallback: "BillBandit"))
+                    .font(Ink.serif(liveOverrides.number("welcome.brand.fontSize", fallback: 29), weight: .semibold))
+                    .foregroundStyle(liveOverrides.color("welcome.brand.color", fallback: Ink.Blue.cream))
+            }
 
-            MascotWelcome(size: 204)
-                .frame(maxWidth: .infinity)
+            if liveOverrides.bool("welcome.mascot.hidden") == false {
+                MascotWelcome(size: liveOverrides.number("welcome.mascot.size", fallback: 204))
+                    .frame(maxWidth: .infinity)
+            }
 
-            VStack(spacing: 9) {
-                Text("he used to steal, now he settles")
-                    .font(Ink.mono(10, weight: .heavy))
-                    .tracking(1.4)
-                    .foregroundStyle(Ink.Blue.peri)
-                VStack(spacing: 10) {
-                    SerifTitle(text: "The trip ends", size: 38)
-                    Text("The tab settles itself")
-                        .font(Ink.serif(34).italic())
-                        .foregroundStyle(Ink.Blue.cream)
-                        .multilineTextAlignment(.center)
+            VStack(spacing: liveOverrides.number("welcome.hero.spacing", fallback: 9)) {
+                if liveOverrides.bool("welcome.tagline.hidden") == false {
+                    Text(liveOverrides.text("welcome.tagline.title", fallback: "he used to steal, now he settles"))
+                        .font(Ink.mono(liveOverrides.number("welcome.tagline.fontSize", fallback: 10), weight: .heavy))
+                        .tracking(1.4)
+                        .foregroundStyle(liveOverrides.color("welcome.tagline.color", fallback: Ink.Blue.peri))
+                }
+                VStack(spacing: liveOverrides.number("welcome.titleStack.spacing", fallback: 10)) {
+                    SerifTitle(text: "The trip ends", size: 38, overrideID: "welcome.primaryTitle")
+                    if liveOverrides.bool("welcome.secondaryTitle.hidden") == false {
+                        Text(liveOverrides.text("welcome.secondaryTitle.title", fallback: "The tab settles itself"))
+                            .font(Ink.serif(liveOverrides.number("welcome.secondaryTitle.fontSize", fallback: 34)).italic())
+                            .foregroundStyle(liveOverrides.color("welcome.secondaryTitle.color", fallback: Ink.Blue.cream))
+                            .multilineTextAlignment(.center)
+                    }
                 }
                 .multilineTextAlignment(.center)
 
-                HStack {
-                    Rectangle().fill(Ink.Blue.cream.opacity(0.7)).frame(height: 1)
-                    Text("✦").foregroundStyle(Ink.Blue.cream)
-                    Rectangle().fill(Ink.Blue.cream.opacity(0.7)).frame(height: 1)
+                if liveOverrides.bool("welcome.divider.hidden") == false {
+                    HStack {
+                        Rectangle().fill(liveOverrides.color("welcome.divider.color", fallback: Ink.Blue.cream).opacity(0.7)).frame(height: 1)
+                        Text("✦").foregroundStyle(liveOverrides.color("welcome.divider.color", fallback: Ink.Blue.cream))
+                        Rectangle().fill(liveOverrides.color("welcome.divider.color", fallback: Ink.Blue.cream).opacity(0.7)).frame(height: 1)
+                    }
+                    .frame(width: liveOverrides.number("welcome.divider.width", fallback: 240))
+                    .padding(.vertical, 2)
                 }
-                .frame(width: 240)
-                .padding(.vertical, 2)
             }
 
-            RoundSeal(text: "NO MORE MONEY\nDRAMA | EST.\n2026", size: 76, tone: Ink.Blue.cream.opacity(0.55))
+            RoundSeal(text: "NO MORE MONEY\nDRAMA | EST.\n2026", size: 76, tone: Ink.Blue.cream.opacity(0.55), overrideID: "welcome.seal")
                 .padding(.top, 2)
 
-            VStack(spacing: 12) {
-                PrimaryCreamButton(title: "Login", action: onLogin)
+            VStack(spacing: liveOverrides.number("welcome.actions.spacing", fallback: 12)) {
+                PrimaryCreamButton(title: "Login", overrideID: "welcome.loginButton", action: onLogin)
                     .accessibilityIdentifier("welcome.login")
-                OutlineCreamButton(title: "Create an account", action: onCreateAccount)
+                OutlineCreamButton(title: "Create an account", overrideID: "welcome.createAccountButton", action: onCreateAccount)
                     .accessibilityIdentifier("welcome.createAccount")
             }
-            .padding(.top, 4)
+            .padding(.top, liveOverrides.number("welcome.actions.topPadding", fallback: 4))
         }
     }
 }
@@ -1703,8 +1791,11 @@ private struct ReceiptTextField: View {
     let label: String
     @Binding var value: String
     var keyboardType: UIKeyboardType = .default
+    var autocapitalization: TextInputAutocapitalization = .words
+    var submitLabel: SubmitLabel = .return
     var script = true
     var identifier: String?
+    var onSubmit: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -1715,8 +1806,13 @@ private struct ReceiptTextField: View {
                 .font(script ? Ink.script(23, weight: .bold) : Ink.mono(15, weight: .semibold))
                 .foregroundStyle(script ? Ink.Blue.cobalt : Ink.Blue.ink)
                 .keyboardType(keyboardType)
-                .textInputAutocapitalization(.words)
+                .textInputAutocapitalization(autocapitalization)
                 .autocorrectionDisabled()
+                .submitLabel(submitLabel)
+                .onSubmit {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    onSubmit()
+                }
                 .accessibilityIdentifier(identifier ?? "field.\(label)")
             DashedRule()
         }
@@ -2301,7 +2397,7 @@ private struct SummaryLine: View {
 private struct SettleInkScreen: View {
     let trip: InkTrip
     let settlements: [InkSettlement]
-    let onRecord: () -> Void
+    let onRecord: (InkSettlement) -> Void
     let onTab: (InkBottomTab) -> Void
 
     var body: some View {
@@ -2338,7 +2434,9 @@ private struct SettleInkScreen: View {
                             .padding(.vertical, 18)
                     } else {
                         ForEach(Array(settlements.enumerated()), id: \.element.id) { index, settlement in
-                            Button(action: onRecord) {
+                            Button {
+                                onRecord(settlement)
+                            } label: {
                                 SettlementRow(
                                     from: friendName(settlement.fromID, in: trip),
                                     to: friendName(settlement.toID, in: trip),
@@ -2387,8 +2485,22 @@ private struct SettlementRow: View {
 }
 
 private struct RecordPaymentInkScreen: View {
+    @State private var isSaving = false
+
+    let trip: InkTrip
+    let settlement: InkSettlement
+    let currentUserID: String
+    let errorMessage: String?
     let onClose: () -> Void
-    let onStamp: () -> Void
+    let onStamp: () async -> Bool
+
+    private var fromName: String {
+        settlement.fromID == currentUserID ? "You" : friendName(settlement.fromID, in: trip)
+    }
+
+    private var toName: String {
+        settlement.toID == currentUserID ? "you" : friendName(settlement.toID, in: trip)
+    }
 
     var body: some View {
         InkAppShell(title: "Record Payment", leftIcon: "xmark", onLeft: onClose) {
@@ -2396,24 +2508,34 @@ private struct RecordPaymentInkScreen: View {
                 VStack(alignment: .leading, spacing: 16) {
                     ReceiptLabel(text: "No. 0012 · Receipt of Payment")
                         .frame(maxWidth: .infinity)
-                    Text("KABIR PAYS YOU")
+                    Text("\(fromName) pays \(toName)".uppercased())
                         .font(Ink.serif(28, weight: .regular))
                         .foregroundStyle(Ink.Blue.ink)
                         .frame(maxWidth: .infinity)
-                    ScriptText(text: "₹3,100", size: 42)
+                    ScriptText(text: rupees(settlement.amount), size: 42)
                         .frame(maxWidth: .infinity)
                     DashedRule()
-                    ReceiptField(label: "For", value: "Goa, December")
+                    ReceiptField(label: "For", value: trip.title)
                     ReceiptLabel(text: "Paid via")
                     ChipLine(items: ["UPI", "Cash"], selected: "UPI")
                     DashedRule()
-                    Text("Clears Kabir’s balance.")
+                    Text("Records this settlement on the shared ledger.")
                         .font(Ink.mono(11, weight: .medium))
                         .foregroundStyle(Ink.Blue.ink)
+                    if let errorMessage {
+                        InkInlineError(message: errorMessage)
+                    }
                 }
             }
 
-            InkBlackButton(title: "Mark as paid", action: onStamp)
+            InkBlackButton(title: isSaving ? "Recording" : "Mark as paid") {
+                guard isSaving == false else { return }
+                isSaving = true
+                Task {
+                    _ = await onStamp()
+                    isSaving = false
+                }
+            }
             Button("Not yet", action: onClose)
                 .font(Ink.serif(18, weight: .semibold))
                 .foregroundStyle(Ink.Blue.cream)
@@ -2445,7 +2567,7 @@ private struct FinalBillInkScreen: View {
                         Text("·")
                             .font(Ink.mono(9, weight: .bold))
                             .foregroundStyle(Ink.Blue.ink)
-                        AvatarStack(size: 20, names: ["Y", "M", "A", "K"])
+                        AvatarStack(size: 20, names: trip.friends.map(\.name))
                     }
                     ReceiptLabel(text: "Booked & balanced by BillBandit")
                     DashedRule()
@@ -2521,8 +2643,27 @@ private struct AddFriendInkScreen: View {
                         .frame(maxWidth: .infinity)
                     DashedRule()
 
-                    ReceiptTextField(label: "Friend name", value: $name, script: false, identifier: "addFriend.name")
-                    ReceiptTextField(label: requiresContact ? "BillBandit email" : "Phone or email", value: $contact, keyboardType: .emailAddress, script: false, identifier: "addFriend.contact")
+                    ReceiptTextField(
+                        label: "Friend name",
+                        value: $name,
+                        submitLabel: .next,
+                        script: false,
+                        identifier: "addFriend.name"
+                    )
+                    ReceiptTextField(
+                        label: requiresContact ? "BillBandit email" : "Phone or email",
+                        value: $contact,
+                        keyboardType: .emailAddress,
+                        autocapitalization: .never,
+                        submitLabel: .done,
+                        script: false,
+                        identifier: "addFriend.contact",
+                        onSubmit: {
+                            if canSubmit {
+                                Task { await save() }
+                            }
+                        }
+                    )
 
                     Text(requiresContact ? "Use the email address they signed up with. We’ll only add verified BillBandit members to this ledger." : "Add a name now, then invite them when the ledger is live.")
                         .font(Ink.mono(11, weight: .medium))
@@ -2544,6 +2685,19 @@ private struct AddFriendInkScreen: View {
                 Task { await save() }
             }
                 .accessibilityIdentifier("addFriend.save")
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(canSubmit ? "Add friend" : "Done") {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    if canSubmit {
+                        Task { await save() }
+                    }
+                }
+                .disabled(isSaving)
+                .accessibilityIdentifier(canSubmit ? "addFriend.keyboardSubmit" : "keyboard.done")
+            }
         }
     }
 
@@ -2812,4 +2966,5 @@ private func friendName(_ id: String, in trip: InkTrip) -> String {
 
 #Preview {
     BillBanditInkPrototypeView()
+        .environmentObject(LiveDesignOverrides.disabled)
 }
