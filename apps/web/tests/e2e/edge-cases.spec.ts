@@ -62,7 +62,7 @@ test.describe.serial('Edge Cases', () => {
     await page.getByRole('tab', { name: /members/i }).click()
     await page.getByPlaceholder('friend@example.com').fill(userB.email)
     await page.getByRole('button', { name: 'Add' }).click()
-    await expect(page.getByText(/already a member/i)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByText(/already a member/i).first()).toBeVisible({ timeout: 8_000 })
   })
 
   test('12.3 adding non-existent friend shows error', async ({ page }) => {
@@ -73,7 +73,7 @@ test.describe.serial('Edge Cases', () => {
     await expect(page.getByRole('dialog')).toBeVisible()
     await page.getByRole('dialog').getByPlaceholder('friend@example.com').fill('nobody@nonexistent-domain-xyz.com')
     await page.getByRole('dialog').getByRole('button', { name: 'Add friend' }).click()
-    await expect(page.getByText(/not found|no user|doesn't exist/i)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByText(/not found|no user|doesn't exist/i).first()).toBeVisible({ timeout: 8_000 })
   })
 
   test('12.4 unauthenticated user cannot access group URL', async ({ browser }) => {

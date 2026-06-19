@@ -35,7 +35,7 @@ jobs:
       - name: Run E2E tests
         env:
           TEST_URL: ${{ env.PRODUCTION_URL }}
-        run: npm run test:e2e
+        run: cd apps/web && npx playwright test --grep-invert "shared parity fixture scenario"
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

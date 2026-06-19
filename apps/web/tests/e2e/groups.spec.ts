@@ -70,7 +70,7 @@ test.describe.serial('Groups', () => {
     await page.getByPlaceholder('friend@example.com').fill(userB.email)
     await page.getByRole('button', { name: 'Add' }).click()
 
-    await expect(page.getByText(/already a member/i)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByText(/already a member/i).first()).toBeVisible({ timeout: 8_000 })
   })
 
   test('4.6 add by email — non-existent user shows error', async ({ page }) => {
@@ -81,6 +81,6 @@ test.describe.serial('Groups', () => {
     await page.getByPlaceholder('friend@example.com').fill('notarealuser@nowhere.xyz')
     await page.getByRole('button', { name: 'Add' }).click()
 
-    await expect(page.getByText(/not found|no user|doesn't exist/i)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByText(/not found|no user|doesn't exist/i).first()).toBeVisible({ timeout: 8_000 })
   })
 })

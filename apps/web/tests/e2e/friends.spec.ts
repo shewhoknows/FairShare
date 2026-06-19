@@ -37,7 +37,7 @@ test.describe.serial('Friends', () => {
     await page.getByRole('dialog').getByPlaceholder('friend@example.com').fill('nobody-real@notexist-xyz.com')
     await page.getByRole('dialog').getByRole('button', { name: 'Add friend' }).click()
 
-    await expect(page.getByText(/not found|no user|doesn't exist/i)).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByText(/not found|no user|doesn't exist/i).first()).toBeVisible({ timeout: 8_000 })
   })
 
   test('3.4 friends page keeps friend rows free of USD balance leakage', async ({ page }) => {
