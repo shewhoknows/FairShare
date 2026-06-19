@@ -1,6 +1,6 @@
 # API Boundary
 
-FairShare keeps the production API inside the Next.js app for now:
+BillBandit keeps the production API inside the Next.js app for now:
 
 - Runtime location: `apps/web/app/api`
 - Shared cross-platform contract: `packages/contracts/openapi.yaml`

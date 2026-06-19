@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Plus, UserPlus, ArrowLeft, Download, ChevronRight, Sparkles } from 'lucide-react'
@@ -33,7 +33,7 @@ export default function GroupDetailPage() {
   const [settleModal, setSettleModal] = useState<any>({ open: false })
   const [friends, setFriends] = useState<{ id: string; name: string | null; email: string; image: string | null }[]>([])
 
-  const fetchGroup = async () => {
+  const fetchGroup = useCallback(async () => {
     try {
       const [groupRes, balancesRes] = await Promise.all([
         fetch(`/api/groups/${id}`),
@@ -48,16 +48,16 @@ export default function GroupDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
     try {
       const res = await fetch('/api/friends')
       if (res.ok) { const data = await res.json(); setFriends(data.friends ?? []) }
     } catch {}
-  }
+  }, [])
 
-  useEffect(() => { fetchGroup(); fetchFriends() }, [id])
+  useEffect(() => { fetchGroup(); fetchFriends() }, [fetchGroup, fetchFriends])
 
   const handleInviteByEmail = async (email: string) => {
     if (!email.trim()) return

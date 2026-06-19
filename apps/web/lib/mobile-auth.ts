@@ -19,6 +19,9 @@ export type MobileSession = {
     email: string
     name: string | null
     image: string | null
+    phone: string | null
+    preferredName: string | null
+    upiID: string | null
   }
 }
 
@@ -102,7 +105,15 @@ export async function getMobileSession(req: NextRequest): Promise<MobileSession 
 
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
-    select: { id: true, email: true, name: true, image: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      phone: true,
+      preferredName: true,
+      upiID: true,
+    },
   })
 
   if (!user) return null
@@ -123,7 +134,16 @@ export async function requireMobileSession(req: NextRequest) {
 export async function authenticateMobileUser(email: string, password: string) {
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, email: true, name: true, image: true, password: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      phone: true,
+      preferredName: true,
+      upiID: true,
+      password: true,
+    },
   })
 
   if (!user?.password) return null
@@ -135,6 +155,8 @@ export async function authenticateMobileUser(email: string, password: string) {
     email: user.email,
     name: user.name,
     image: user.image,
+    phone: user.phone,
+    preferredName: user.preferredName,
+    upiID: user.upiID,
   }
 }
-

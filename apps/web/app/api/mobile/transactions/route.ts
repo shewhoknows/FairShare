@@ -16,28 +16,15 @@ export async function POST(req: NextRequest) {
     }
 
     const { receiverId: rawReceiverId, senderId: rawSenderId, amount, currency, groupId, note } = parsed.data
-    let senderId: string
-    let receiverId: string
-
-    if (rawSenderId) {
-      senderId = rawSenderId
-      receiverId = session.user.id
-    } else if (rawReceiverId) {
-      senderId = session.user.id
-      receiverId = rawReceiverId
-    } else {
-      return NextResponse.json({ error: 'Either receiverId or senderId is required' }, { status: 400 })
+    if (Boolean(rawSenderId) === Boolean(rawReceiverId)) {
+      return NextResponse.json({ error: 'Provide exactly one of receiverId or senderId' }, { status: 400 })
     }
+
+    const senderId = rawSenderId ?? session.user.id
+    const receiverId = rawSenderId ? session.user.id : rawReceiverId!
 
     if (senderId === receiverId) {
       return NextResponse.json({ error: "You can't settle with yourself" }, { status: 400 })
-    }
-
-    if (groupId) {
-      const membership = await prisma.groupMember.findUnique({
-        where: { groupId_userId: { groupId, userId: session.user.id } },
-      })
-      if (!membership) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const [sender, receiver] = await Promise.all([
@@ -46,6 +33,17 @@ export async function POST(req: NextRequest) {
     ])
     if (!sender) return NextResponse.json({ error: 'Sender not found' }, { status: 404 })
     if (!receiver) return NextResponse.json({ error: 'Receiver not found' }, { status: 404 })
+
+    if (groupId) {
+      const requiredMemberIds = new Set([session.user.id, senderId, receiverId])
+      const memberships = await prisma.groupMember.findMany({
+        where: { groupId, userId: { in: Array.from(requiredMemberIds) } },
+        select: { userId: true },
+      })
+      if (memberships.length !== requiredMemberIds.size) {
+        return NextResponse.json({ error: 'Both settlement parties must belong to the group' }, { status: 403 })
+      }
+    }
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -89,4 +87,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

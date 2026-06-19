@@ -1,7 +1,7 @@
 name: E2E Tests
 
 env:
-  PRODUCTION_URL: https://fairshare-web-production.up.railway.app
+  PRODUCTION_URL: https://billbandit-api.contenthelper.in
 
 on:
   push:

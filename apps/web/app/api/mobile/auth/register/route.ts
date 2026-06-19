@@ -28,7 +28,15 @@ export async function POST(req: NextRequest) {
         password: await bcrypt.hash(password, 12),
         image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
       },
-      select: { id: true, name: true, email: true, image: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        phone: true,
+        preferredName: true,
+        upiID: true,
+      },
     })
 
     // Create and send verification token
@@ -67,4 +75,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

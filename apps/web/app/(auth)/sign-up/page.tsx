@@ -50,7 +50,7 @@ export default function SignUpPage() {
           <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center">
             <Split className="w-5 h-5 text-white" />
           </div>
-          <span className="text-2xl font-bold text-gray-900">FairShare</span>
+          <span className="text-2xl font-bold text-gray-900">BillBandit</span>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-8">
@@ -61,7 +61,7 @@ export default function SignUpPage() {
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
               <p className="text-gray-500 mb-6">
-                We&apos;ve sent a verification link to <strong>{email}</strong>. Click the link to verify your account and start using FairShare.
+                We&apos;ve sent a verification link to <strong>{email}</strong>. Click the link to verify your account and start using BillBandit.
               </p>
               <Button
                 variant="outline"

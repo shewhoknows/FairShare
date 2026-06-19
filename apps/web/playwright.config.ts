@@ -10,7 +10,7 @@ export default defineConfig({
     : [['html', { open: 'never' }], ['list']],
   globalSetup: './tests/e2e/setup/global-setup.ts',
   use: {
-    baseURL: process.env.TEST_URL ?? 'https://fairshare-production-e481.up.railway.app',
+    baseURL: process.env.TEST_URL ?? 'http://127.0.0.1:3000',
     headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

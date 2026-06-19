@@ -5,7 +5,7 @@ import { getCredentials } from './helpers'
 const ts = Date.now()
 const FRESH_USER = {
   name: 'Fresh Tester',
-  email: `fresh-${ts}@fairshare-test.com`,
+  email: `fresh-${ts}@billbandit-test.com`,
   password: 'TestPass123!',
 }
 

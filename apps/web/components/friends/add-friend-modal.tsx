@@ -64,7 +64,7 @@ export function AddFriendModal({ open, onOpenChange, onSuccess }: Props) {
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              They must already have a FairShare account.
+              They must already have a BillBandit account.
             </p>
           </div>
 

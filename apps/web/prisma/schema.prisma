@@ -56,6 +56,9 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?   // bcrypt hash – null for OAuth users
+  phone         String?   @unique
+  preferredName String?
+  upiID         String?
 
   accounts      Account[]
   sessions      Session[]
@@ -77,6 +80,21 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([email])
+  @@index([phone])
+}
+
+model MobileOTPChallenge {
+  id             String    @id @default(cuid())
+  identifier     String
+  identifierType String
+  codeHash       String
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  attempts       Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  @@index([identifier])
+  @@index([expiresAt])
 }
 
 model Group {

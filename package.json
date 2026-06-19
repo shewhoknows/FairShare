@@ -1,5 +1,5 @@
 {
-  "name": "fairshare-platform",
+  "name": "billbandit-platform",
   "private": true,
   "workspaces": [
     "apps/web"
@@ -16,6 +16,7 @@
     "db:seed": "npm --workspace apps/web run db:seed",
     "db:studio": "npm --workspace apps/web run db:studio",
     "test:api": "npm --workspace apps/web run test:api",
+    "test:mobile-ledger": "npm --workspace apps/web run test:mobile-ledger",
     "test:web": "npm --workspace apps/web run test:e2e",
     "test:e2e": "npm --workspace apps/web run test:e2e",
     "test:e2e:report": "npm --workspace apps/web run test:e2e:report",
