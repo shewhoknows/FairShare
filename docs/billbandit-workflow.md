@@ -4,6 +4,12 @@ Scope: active BillBandit ink/auth launch surface on the iPhone 17 Pro simulator,
 
 ## Screenshot Gallery
 
+Quick overview sheets:
+
+- [Auth and onboarding](billbandit-workflow/contact-sheets/01-auth-onboarding.jpg)
+- [Trip setup](billbandit-workflow/contact-sheets/02-trip-setup.jpg)
+- [Ledger and settlement](billbandit-workflow/contact-sheets/03-ledger-settlement.jpg)
+
 | # | Screen | Screenshot | How it was reached |
 |---|---|---|---|
 | 01 | Welcome | [01-welcome.jpg](billbandit-workflow/screenshots/01-welcome.jpg) | `--root=prototype --ink-screen=01` |
