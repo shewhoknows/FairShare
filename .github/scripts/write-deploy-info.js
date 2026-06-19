@@ -18,7 +18,7 @@ const deployInfo = {
   workflow: process.env.GITHUB_WORKFLOW || null,
 }
 
-const publicDir = path.join(process.cwd(), 'public')
+const publicDir = path.join(process.cwd(), 'apps', 'web', 'public')
 fs.mkdirSync(publicDir, { recursive: true })
 fs.writeFileSync(
   path.join(publicDir, 'deploy-info.json'),
