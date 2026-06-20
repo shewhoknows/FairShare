@@ -213,25 +213,29 @@ struct InkAuthStartView: View {
     }
 
     var body: some View {
-        VStack(spacing: liveOverrides.number("auth.start.spacing", fallback: 16)) {
+        VStack(spacing: liveOverrides.number("auth.start.spacing", fallback: 54)) {
             InkAuthHero(
                 overrideID: "auth.start.hero",
-                title: "BillBandit",
+                title: "",
                 subtitle: "SETTLE THE TAB",
+                spacingFallback: 14,
                 mascot: MascotWelcome(size: 272)
             )
 
             ReceiptCard(
-                eyebrow: liveOverrides.text("auth.start.receipt.eyebrow", fallback: "Auth receipt"),
+                eyebrow: nil,
                 title: liveOverrides.text("auth.start.receipt.title", fallback: "Start with your email or phone"),
-                subtitle: liveOverrides.text("auth.start.receipt.subtitle", fallback: "We will send a one-time code for this account."),
-                barcodeValue: "AUTH-START"
+                subtitle: liveOverrides.text("auth.start.receipt.subtitle", fallback: "We will send a one-time code for this account"),
+                barcodeValue: "AUTH-START",
+                barcodeHorizontalAlignment: .center
             ) {
                 VStack(alignment: .leading, spacing: 16) {
                     InkAuthField(
                         title: "Email or phone",
                         placeholder: "meera@billbandit.app",
                         text: $identifier,
+                        showsTitle: false,
+                        showsSystemImage: false,
                         systemImage: "at",
                         keyboardType: .emailAddress,
                         textContentType: .username,
@@ -319,23 +323,30 @@ struct InkOTPVerifyView: View {
         VStack(spacing: liveOverrides.number("auth.verify.spacing", fallback: 16)) {
             InkAuthHero(
                 overrideID: "auth.verify.hero",
-                title: "Check your code",
-                subtitle: "OTP RECEIPT",
-                mascot: MascotPeek(size: 152)
+                title: "Enter your OTP",
+                subtitle: "",
+                spacingFallback: 0,
+                mascot: MascotPeek(size: 304)
             )
 
             ReceiptCard(
-                eyebrow: liveOverrides.text("auth.verify.receipt.eyebrow", fallback: "Verification"),
-                title: liveOverrides.text("auth.verify.receipt.title", fallback: "Enter the 6 digit code"),
-                subtitle: liveOverrides.text("auth.verify.receipt.subtitle", fallback: "Sent to \(identifier)"),
-                barcodeValue: "OTP-\(identifier)"
+                eyebrow: nil,
+                title: nil,
+                subtitle: nil,
+                barcodeValue: "OTP-\(identifier)",
+                barcodeHorizontalAlignment: .center,
+                minHeight: liveOverrides.number("auth.verify.receipt.minHeight", fallback: 430),
+                pinsBarcodeToBottom: true
             ) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 18) {
                     InkAuthField(
                         title: "One-time code",
                         placeholder: "000000",
                         text: $code,
+                        showsTitle: false,
+                        showsSystemImage: false,
                         systemImage: "number",
+                        textAlignment: .center,
                         keyboardType: .numberPad,
                         textContentType: .oneTimeCode,
                         autocapitalization: .never,
@@ -399,23 +410,28 @@ struct InkProfileCompletionView: View {
     var onComplete: () -> Void
 
     var body: some View {
-        VStack(spacing: liveOverrides.number("auth.profile.spacing", fallback: 16)) {
+        VStack(spacing: liveOverrides.number("auth.profile.spacing", fallback: 8)) {
             InkAuthHero(
                 overrideID: "auth.profile.hero",
-                title: "Finish your receipt",
-                subtitle: "PROFILE STAMP",
-                mascot: MascotThinking(size: 154)
+                title: "Create your profile",
+                subtitle: "",
+                spacingFallback: 2,
+                mascot: MascotThinking(size: 172)
             )
 
             ReceiptCard(
-                eyebrow: liveOverrides.text("auth.profile.receipt.eyebrow", fallback: "Profile"),
-                title: liveOverrides.text("auth.profile.receipt.title", fallback: "Complete your BillBandit profile"),
-                subtitle: liveOverrides.text("auth.profile.receipt.subtitle", fallback: identifier.map { "Signing in as \($0)" } ?? ""),
-                barcodeValue: "PROFILE"
+                eyebrow: nil,
+                title: nil,
+                subtitle: nil,
+                barcodeValue: "PROFILE",
+                barcodeHorizontalAlignment: .center,
+                minHeight: liveOverrides.number("auth.profile.receipt.minHeight", fallback: 570),
+                pinsBarcodeToBottom: true,
+                footerAboveBarcode: AnyView(profileActionRow)
             ) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 18) {
                     InkAuthField(
-                        title: "Name",
+                        title: "Full name",
                         placeholder: "Meera Kapoor",
                         text: $draft.name,
                         systemImage: "person",
@@ -424,7 +440,7 @@ struct InkProfileCompletionView: View {
                     )
 
                     InkAuthField(
-                        title: "Preferred name",
+                        title: "Username",
                         placeholder: "Meera",
                         text: $draft.preferredName,
                         systemImage: "person.text.rectangle",
@@ -452,24 +468,28 @@ struct InkProfileCompletionView: View {
                     if let message {
                         InkAuthMessage(text: message)
                     }
-
-                    HStack(alignment: .center, spacing: 12) {
-                        InkAuthSeal(text: "BILL\nBANDIT")
-
-                        InkAuthPillButton(
-                            title: "Save profile",
-                            systemImage: "checkmark.seal",
-                            isLoading: isSubmitting,
-                            isDisabled: isSubmitting || !draft.isReady,
-                            overrideID: "auth.profile.saveButton"
-                        ) {
-                            onComplete()
-                        }
-                        .accessibilityIdentifier("inkAuth.completeProfile")
-                    }
                 }
             }
         }
+    }
+
+    private var profileActionRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            InkAuthSeal(text: "Bill\nBandit")
+
+            InkAuthPillButton(
+                title: "Create Account",
+                systemImage: "checkmark.seal",
+                isLoading: isSubmitting,
+                isDisabled: isSubmitting || !draft.isReady,
+                overrideID: "auth.profile.saveButton"
+            ) {
+                onComplete()
+            }
+            .accessibilityIdentifier("inkAuth.completeProfile")
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 8)
     }
 }
 
@@ -499,16 +519,15 @@ private struct InkAuthTopBar: View {
 
             Spacer()
 
-            Text(liveOverrides.text("auth.topBar.title", fallback: "AUTH").uppercased())
-                .font(InkAuthPalette.labelFont)
-                .tracking(liveOverrides.number("auth.topBar.tracking", fallback: 4.2))
-                .foregroundStyle(liveOverrides.color("auth.topBar.color", fallback: InkAuthPalette.cream))
-
-            Spacer()
-
             Color.clear.frame(width: 40, height: 40)
         }
         .foregroundStyle(InkAuthPalette.cream)
+        .offset(y: topBarYOffset)
+        .padding(.bottom, topBarYOffset)
+    }
+
+    private var topBarYOffset: CGFloat {
+        liveOverrides.number("auth.topBar.yOffset", fallback: -48)
     }
 }
 
@@ -518,18 +537,20 @@ private struct InkAuthHero<Mascot: View>: View {
     var overrideID: String?
     let title: String
     let subtitle: String
+    var spacingFallback: CGFloat = 10
     let mascot: Mascot
 
     var body: some View {
-        VStack(spacing: liveOverrides.number("\(overrideID ?? "").spacing", fallback: 10)) {
+        VStack(spacing: liveOverrides.number("\(overrideID ?? "").spacing", fallback: spacingFallback)) {
             if liveOverrides.bool("\(overrideID ?? "").mascot.hidden") == false {
                 mascot
                     .frame(maxWidth: .infinity)
             }
 
             VStack(spacing: liveOverrides.number("\(overrideID ?? "").titleSpacing", fallback: 5)) {
-                if liveOverrides.bool("\(overrideID ?? "").subtitle.hidden") == false {
-                    Text(liveOverrides.text("\(overrideID ?? "").subtitle", fallback: subtitle).uppercased())
+                let resolvedSubtitle = liveOverrides.text("\(overrideID ?? "").subtitle", fallback: subtitle)
+                if !resolvedSubtitle.isEmpty, liveOverrides.bool("\(overrideID ?? "").subtitle.hidden") == false {
+                    Text(resolvedSubtitle.uppercased())
                         .font(InkAuthPalette.labelFont)
                         .tracking(1.8)
                         .foregroundStyle(liveOverrides.color("\(overrideID ?? "").subtitleColor", fallback: InkAuthPalette.periwinkle))
@@ -553,7 +574,10 @@ private struct InkAuthField: View {
     let title: String
     let placeholder: String
     @Binding var text: String
+    var showsTitle = true
+    var showsSystemImage = true
     var systemImage: String?
+    var textAlignment: TextAlignment = .leading
     var keyboardType: UIKeyboardType = .default
     var textContentType: UITextContentType?
     var autocapitalization: TextInputAutocapitalization = .words
@@ -564,22 +588,26 @@ private struct InkAuthField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(InkAuthPalette.labelFont)
-                .tracking(1.0)
-                .foregroundStyle(InkReceiptTheme.structureInk)
+            if showsTitle {
+                Text(title.uppercased())
+                    .font(InkAuthPalette.labelFont)
+                    .tracking(1.0)
+                    .foregroundStyle(InkReceiptTheme.structureInk)
+            }
 
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                if let systemImage {
+                if showsSystemImage, let systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(InkReceiptTheme.rupeeBlue)
                         .frame(width: 18)
+                        .accessibilityHidden(true)
                 }
 
                 TextField(placeholder, text: $text)
                     .font(.system(size: 18, weight: .semibold, design: .serif))
                     .foregroundStyle(InkReceiptTheme.structureInk)
+                    .multilineTextAlignment(textAlignment)
                     .keyboardType(keyboardType)
                     .textContentType(textContentType)
                     .textInputAutocapitalization(autocapitalization)
@@ -691,17 +719,25 @@ private struct InkAuthSeal: View {
 
     var body: some View {
         ZStack {
-            Circle().stroke(InkReceiptTheme.rupeeBlue, lineWidth: 1.5)
-            Circle().stroke(InkReceiptTheme.rupeeBlue.opacity(0.56), lineWidth: 1)
+            Circle()
+                .stroke(InkReceiptTheme.rupeeBlue.opacity(0.92), style: StrokeStyle(lineWidth: 2.0, dash: [3, 2]))
+            Circle()
+                .stroke(InkReceiptTheme.rupeeBlue.opacity(0.64), lineWidth: 1)
                 .padding(5)
+            Circle()
+                .stroke(InkReceiptTheme.rupeeBlue.opacity(0.36), lineWidth: 1)
+                .padding(10)
             Text(text)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(1.0)
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(0.2)
+                .lineSpacing(-1)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(InkReceiptTheme.rupeeBlue)
-                .padding(10)
+                .padding(8)
         }
         .frame(width: 62, height: 62)
+        .rotationEffect(.degrees(30))
+        .opacity(0.92)
         .accessibilityHidden(true)
     }
 }

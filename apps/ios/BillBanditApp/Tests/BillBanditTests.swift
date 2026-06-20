@@ -22,6 +22,15 @@ final class BillBanditTests: XCTestCase {
         XCTAssertEqual(normalized.upiID, "meera@upi")
     }
 
+    func testFriendChipLabelsUseFullFirstNameAndLastInitialForDuplicateFirstNames() {
+        let candidates = ["You", "Meera Kapoor", "Meera Shah", "Arjun Singh"]
+
+        XCTAssertEqual(FriendChipLabeler.label(for: "Meera Kapoor", in: candidates), "Meera K")
+        XCTAssertEqual(FriendChipLabeler.label(for: "Meera Shah", in: candidates), "Meera S")
+        XCTAssertEqual(FriendChipLabeler.label(for: "Arjun Singh", in: candidates), "Arjun")
+        XCTAssertEqual(FriendChipLabeler.label(for: "You", in: candidates), "You")
+    }
+
     @MainActor
     func testInkStoreRunsLedgerFlowThroughMobileAPIClient() async throws {
         let client = APIClient(baseURL: try XCTUnwrap(URL(string: "mock://billbandit"))) { "mock-token" }

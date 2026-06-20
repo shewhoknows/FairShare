@@ -26,6 +26,12 @@ enum InkScreen: String, CaseIterable, Identifiable {
     }
 }
 
+enum InkEditMode {
+    static func isEnabled(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        arguments.contains("--ink-edit")
+    }
+}
+
 struct InkFriend: Identifiable, Hashable {
     let id: String
     var name: String
@@ -122,9 +128,9 @@ struct InkSettlement: Identifiable, Equatable, Hashable {
 struct InkTripDraft: Equatable {
     var title = "Goa, December"
     var location = "Goa, India"
-    var dates = "4–8 Dec 2026"
+    var dates = "4 Dec 2026"
     var startDate = DateComponents(calendar: .current, year: 2026, month: 12, day: 4).date ?? Date()
-    var endDate = DateComponents(calendar: .current, year: 2026, month: 12, day: 8).date ?? Date()
+    var endDate = DateComponents(calendar: .current, year: 2026, month: 12, day: 4).date ?? Date()
     var friendNames: [String] = ["You"]
 
     static let fresh = InkTripDraft()
@@ -153,12 +159,17 @@ struct InkTripDraft: Equatable {
 
     static func formattedDateRange(start: Date, end: Date) -> String {
         let calendar = Calendar.current
-        let startDay = calendar.component(.day, from: start)
-        let endDay = calendar.component(.day, from: end)
-        let year = calendar.component(.year, from: end)
         let monthFormatter = DateFormatter()
         monthFormatter.locale = Locale(identifier: "en_IN")
         monthFormatter.dateFormat = "MMM"
+        if calendar.isDate(start, inSameDayAs: end) {
+            let day = calendar.component(.day, from: start)
+            let year = calendar.component(.year, from: start)
+            return "\(day) \(monthFormatter.string(from: start)) \(year)"
+        }
+        let startDay = calendar.component(.day, from: start)
+        let endDay = calendar.component(.day, from: end)
+        let year = calendar.component(.year, from: end)
         if calendar.component(.month, from: start) == calendar.component(.month, from: end), calendar.component(.year, from: start) == year {
             return "\(startDay)–\(endDay) \(monthFormatter.string(from: end)) \(year)"
         }
@@ -338,19 +349,19 @@ final class InkTripStore: ObservableObject {
     @discardableResult
     func addFriend(named rawName: String, contact: String, to tripID: String) async -> Bool {
         if let apiClient {
-            let normalizedContact = contact.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard normalizedContact.isEmpty == false else {
-                setValidationError("Enter your friend’s BillBandit email.")
+            let normalizedUsername = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard normalizedUsername.isEmpty == false else {
+                setValidationError("Enter your friend’s username.")
                 return false
             }
             errorMessage = nil
             BillBanditLog.ledger(
-                "event=ledger.member.add.start group=\(BillBanditLog.redactedID(tripID)) contact_present=\(BillBanditLog.bool(normalizedContact.isEmpty == false))"
+                "event=ledger.member.add.start group=\(BillBanditLog.redactedID(tripID)) username_present=\(BillBanditLog.bool(normalizedUsername.isEmpty == false))"
             )
             do {
                 let _: MemberResponse = try await apiClient.post(
                     "/api/mobile/groups/\(tripID)/members",
-                    body: AddMemberRequest(email: normalizedContact)
+                    body: AddMemberRequest(username: normalizedUsername)
                 )
                 _ = await fetchTrip(id: tripID)
                 errorMessage = nil
@@ -366,10 +377,30 @@ final class InkTripStore: ObservableObject {
         }
 
         guard let index = trips.firstIndex(where: { $0.id == tripID }) else { return false }
-        let name = rawName.trimmedOrDefault(contact.trimmedOrDefault("New friend"))
+        let name = rawName.trimmedOrDefault("New friend")
         guard trips[index].friends.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) == false else { return true }
         trips[index].friends.append(InkFriend(name: name, contact: contact))
         return true
+    }
+
+    func validateFriendUsername(_ rawUsername: String) async -> Bool {
+        let username = rawUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard username.isEmpty == false else { return false }
+
+        if let apiClient,
+           let encodedUsername = username.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            do {
+                let response: UsernameLookupResponse = try await apiClient.get("/api/mobile/users/lookup?username=\(encodedUsername)")
+                return response.exists
+            } catch {
+                BillBanditLog.ledger(
+                    "event=ledger.member.lookup.result success=false error=\(BillBanditLog.sanitizedError(error))"
+                )
+                return false
+            }
+        }
+
+        return Self.demoUsernameExists(username)
     }
 
     @discardableResult
@@ -590,6 +621,11 @@ final class InkTripStore: ObservableObject {
         }
         let isCurrentUser = name.caseInsensitiveCompare("You") == .orderedSame || name.caseInsensitiveCompare(currentUserName) == .orderedSame
         return InkFriend(id: isCurrentUser ? localUserID : UUID().uuidString, name: name)
+    }
+
+    private static func demoUsernameExists(_ username: String) -> Bool {
+        let normalized = username.normalizedInkUsername
+        return ["alice", "bob", "carol", "dave", "meera", "arjun", "kabir", "nidhi", "you"].contains(normalized)
     }
 
     private func inkTrip(from group: GroupDTO, balances: GroupBalancesDTO? = nil) -> InkTrip {
@@ -862,7 +898,7 @@ struct BillBanditInkPrototypeView: View {
                     tripDraft = .fresh
                     screen = .newLedger
                 },
-                onTrips: { screen = .yourTrips }
+                onTab: handleTab
             )
         case .yourTrips:
             YourTripsInkScreen(
@@ -1007,6 +1043,9 @@ struct BillBanditInkPrototypeView: View {
                 errorMessage: store.errorMessage,
                 requiresContact: friendReturnScreen != .newLedger && store.isRemoteBacked,
                 onClose: { screen = friendReturnScreen },
+                onValidateUsername: { username in
+                    return await store.validateFriendUsername(username)
+                },
                 onAdd: { name, contact in
                     if friendReturnScreen == .newLedger {
                         tripDraft.friendNames.append(name.trimmedOrDefault(contact.trimmedOrDefault("New friend")))
@@ -1061,12 +1100,48 @@ private extension String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? fallback : trimmed
     }
+
+    var normalizedInkUsername: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
+    }
+
+    var firstNameForChip: String {
+        let parts = split(whereSeparator: \.isWhitespace).map(String.init)
+        return parts.first ?? trimmedOrDefault("Friend")
+    }
+
+    var lastNameInitialForChip: String? {
+        let parts = split(whereSeparator: \.isWhitespace).map(String.init)
+        guard parts.count > 1,
+              let initial = parts.last?.first else {
+            return nil
+        }
+        return String(initial).uppercased()
+    }
 }
 
 private extension Array where Element == String {
     func uniqued() -> [String] {
         var seen = Set<String>()
         return filter { seen.insert($0.lowercased()).inserted }
+    }
+}
+
+enum FriendChipLabeler {
+    static func label(for name: String, in candidates: [String]) -> String {
+        let firstName = name.firstNameForChip
+        let duplicateFirstNames = Dictionary(grouping: candidates, by: \.firstNameForChip)
+            .filter { $0.value.count > 1 }
+            .keys
+
+        guard duplicateFirstNames.contains(firstName),
+              let lastInitial = name.lastNameInitialForChip else {
+            return firstName
+        }
+
+        return "\(firstName) \(lastInitial)"
     }
 }
 
@@ -1082,6 +1157,7 @@ private enum Ink {
         static let inkSoft = Color(red: 0.42, green: 0.42, blue: 0.44)
         static let rule = Color(red: 0.80, green: 0.76, blue: 0.63)
         static let cobalt = Color(red: 0.13, green: 0.19, blue: 0.90)
+        static let success = Color(red: 0.08, green: 0.54, blue: 0.25)
         static let peri = Color(red: 0.64, green: 0.68, blue: 0.94)
         static let periDim = Color(red: 0.49, green: 0.53, blue: 0.85)
 
@@ -1106,6 +1182,8 @@ private enum Ink {
 }
 
 private struct InkAppShell<Content: View>: View {
+    typealias BottomOverlay = AnyView
+
     var title: String
     var leftIcon: String?
     var rightIcon: String?
@@ -1113,11 +1191,15 @@ private struct InkAppShell<Content: View>: View {
     var onRight: (() -> Void)?
     var activeTab: InkBottomTab?
     var onTab: ((InkBottomTab) -> Void)?
+    var visibleTabs: [InkBottomTab] = InkBottomTab.allCases
     var contentSpacing: CGFloat = 18
     var showsTopBar = true
+    var inlineTitleIcon = false
+    var topBarTopSpacing: CGFloat = 60
+    var scrollDisabled = false
+    var bottomOverlay: BottomOverlay?
     @ViewBuilder var content: Content
     private let statusBarTopOffset: CGFloat = -38
-    private let topBarTopSpacing: CGFloat = 60
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1131,24 +1213,37 @@ private struct InkAppShell<Content: View>: View {
                     leftIcon: leftIcon,
                     rightIcon: rightIcon,
                     onLeft: onLeft,
-                    onRight: onRight
+                    onRight: onRight,
+                    inlineTitleIcon: inlineTitleIcon
                 )
                 .padding(.horizontal, 20)
                 .padding(.top, topBarTopSpacing)
             }
 
-            ScrollView(showsIndicators: false) {
+            if scrollDisabled {
                 VStack(spacing: contentSpacing) {
                     content
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                .padding(.bottom, activeTab == nil ? 28 : 108)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea(edges: .bottom)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: contentSpacing) {
+                        content
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, activeTab == nil ? 28 : 108)
+                }
             }
         }
         .overlay(alignment: .bottom) {
-            if let activeTab, let onTab {
-                InkBottomTabs(active: activeTab, onSelect: onTab)
+            if let bottomOverlay {
+                bottomOverlay
+            } else if let activeTab, let onTab {
+                InkBottomTabs(active: activeTab, tabs: visibleTabs, onSelect: onTab)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)
             }
@@ -1179,43 +1274,70 @@ private struct InkTopBar: View {
     var rightIcon: String?
     var onLeft: (() -> Void)?
     var onRight: (() -> Void)?
+    var inlineTitleIcon = false
 
     var body: some View {
-        ZStack {
-            HStack {
-                if let leftIcon {
-                    Button(action: { onLeft?() }) {
-                        Image(systemName: leftIcon)
-                            .font(.system(size: 21, weight: .semibold))
-                            .frame(width: 36, height: 36)
+        Group {
+            if inlineTitleIcon {
+                ZStack {
+                    Text(title.uppercased())
+                        .font(Ink.mono(13, weight: .heavy))
+                        .tracking(5.2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(maxWidth: .infinity)
+
+                    HStack {
+                        Spacer()
+                        if let rightIcon {
+                            Button(action: { onRight?() }) {
+                                Image(systemName: rightIcon)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("top.right")
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("top.left")
-                } else {
-                    Color.clear.frame(width: 36, height: 36)
                 }
+                .frame(maxWidth: .infinity)
+            } else {
+                ZStack {
+                    HStack {
+                        if let leftIcon {
+                            Button(action: { onLeft?() }) {
+                                Image(systemName: leftIcon)
+                                    .font(.system(size: 21, weight: .semibold))
+                                    .frame(width: 36, height: 36)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("top.left")
+                        } else {
+                            Color.clear.frame(width: 36, height: 36)
+                        }
 
-                Spacer()
+                        Spacer()
 
-                if let rightIcon {
-                    Button(action: { onRight?() }) {
-                        Image(systemName: rightIcon)
-                            .font(.system(size: 21, weight: .semibold))
-                            .frame(width: 36, height: 36)
+                        if let rightIcon {
+                            Button(action: { onRight?() }) {
+                                Image(systemName: rightIcon)
+                                    .font(.system(size: 21, weight: .semibold))
+                                    .frame(width: 36, height: 36)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("top.right")
+                        } else {
+                            Color.clear.frame(width: 36, height: 36)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("top.right")
-                } else {
-                    Color.clear.frame(width: 36, height: 36)
+
+                    Text(title.uppercased())
+                        .font(Ink.mono(13, weight: .heavy))
+                        .tracking(5.2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
             }
-
-            Text(title.uppercased())
-                .font(Ink.mono(13, weight: .heavy))
-                .tracking(5.2)
-                .foregroundStyle(Ink.Blue.cream)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
         .foregroundStyle(Ink.Blue.cream)
     }
@@ -1248,11 +1370,8 @@ private enum InkBottomTab: CaseIterable {
 
 private struct InkBottomTabs: View {
     let active: InkBottomTab
+    var tabs: [InkBottomTab] = InkBottomTab.allCases
     let onSelect: (InkBottomTab) -> Void
-
-    private var tabs: [InkBottomTab] {
-        [.ledger, .settle, .trips, .profile]
-    }
 
     var body: some View {
         HStack {
@@ -1278,13 +1397,37 @@ private struct InkBottomTabs: View {
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 10)
-        .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Ink.Blue.cobalt.opacity(0.19))
+        .modifier(InkGlassBar(cornerRadius: 22))
+    }
+}
+
+private struct InkGlassBar: ViewModifier {
+    let cornerRadius: CGFloat
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(
+                    .regular
+                        .tint(Ink.Blue.cobalt.opacity(0.25))
+                        .interactive(true),
+                    in: .rect(cornerRadius: cornerRadius)
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .stroke(Ink.Blue.cream.opacity(0.10), lineWidth: 1)
                 )
+        } else {
+            content
+                .background {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(Ink.Blue.cobalt.opacity(0.095))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .stroke(Ink.Blue.cream.opacity(0.10), lineWidth: 1)
+                        )
+                }
         }
     }
 }
@@ -1439,18 +1582,69 @@ private struct RoundSeal: View {
         if liveOverrides.bool("\(overrideID ?? "").hidden") == false {
             let resolvedSize = liveOverrides.number("\(overrideID ?? "").size", fallback: size)
             let resolvedTone = liveOverrides.color("\(overrideID ?? "").color", fallback: tone)
+            let resolvedText = liveOverrides.text("\(overrideID ?? "").title", fallback: text)
+            let lines = resolvedText.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+            let longestLineCount = lines.map(\.count).max() ?? 0
+            let textSize: CGFloat = {
+                guard resolvedSize > 50 else { return 7 }
+                if longestLineCount > 14 { return 7 }
+                if longestLineCount > 8 { return 7.5 }
+                return 10
+            }()
+            let textTracking: CGFloat = longestLineCount > 14 ? 0.3 : (longestLineCount > 8 ? 0.4 : 1.0)
             ZStack {
                 Circle().stroke(resolvedTone, lineWidth: 1.5)
                 Circle().stroke(resolvedTone.opacity(0.65), lineWidth: 1).padding(5)
-                Text(liveOverrides.text("\(overrideID ?? "").title", fallback: text).uppercased())
-                    .font(Ink.mono(resolvedSize > 50 ? 10 : 7, weight: .heavy))
-                    .tracking(1.0)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(resolvedTone)
-                    .padding(10)
+                VStack(spacing: 2) {
+                    ForEach(lines, id: \.self) { line in
+                        Text(line.uppercased())
+                            .font(Ink.mono(textSize, weight: .heavy))
+                            .tracking(textTracking)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.65)
+                    }
+                }
+                .multilineTextAlignment(.center)
+                .foregroundStyle(resolvedTone)
+                .padding(10)
             }
             .frame(width: resolvedSize, height: resolvedSize)
         }
+    }
+}
+
+private struct FairShareLedgerStamp: View {
+    var size: CGFloat = 82
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Ink.Blue.cobalt, style: StrokeStyle(lineWidth: 1.6, dash: [3, 2.5]))
+                .opacity(0.95)
+            Circle()
+                .stroke(Ink.Blue.cobalt.opacity(0.85), lineWidth: 1.2)
+                .padding(5)
+            Circle()
+                .stroke(Ink.Blue.cobalt.opacity(0.45), lineWidth: 0.9)
+                .padding(11)
+
+            VStack(spacing: 1) {
+                Text("FAIR")
+                Text("SHARE")
+            }
+            .font(Ink.mono(7.5, weight: .heavy))
+            .tracking(0.8)
+            .foregroundStyle(Ink.Blue.cobalt)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 2)
+                    .stroke(Ink.Blue.cobalt, lineWidth: 1.1)
+            )
+            .rotationEffect(.degrees(18))
+        }
+        .frame(width: size, height: size)
+        .rotationEffect(.degrees(30))
     }
 }
 
@@ -1584,6 +1778,7 @@ private struct ChipLine: View {
     let items: [String]
     var selected: String?
     var selectedItems: Set<String> = []
+    var labelFor: (String) -> String = { $0 }
     var onTap: ((String) -> Void)?
 
     var body: some View {
@@ -1593,9 +1788,11 @@ private struct ChipLine: View {
                 Button {
                     onTap?(item)
                 } label: {
-                    Text(item)
+                    Text(labelFor(item))
                         .font(Ink.mono(12, weight: .bold))
                         .foregroundStyle(isSelected ? Ink.Blue.cream : Ink.Blue.ink)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 8)
                         .background(isSelected ? Ink.Blue.ink : Color.clear, in: Capsule())
@@ -1717,7 +1914,7 @@ private struct WelcomeInkScreen: View {
                 }
             }
 
-            RoundSeal(text: "NO MORE MONEY\nDRAMA | EST.\n2026", size: 76, tone: Ink.Blue.cream.opacity(0.55), overrideID: "welcome.seal")
+            RoundSeal(text: "NO MORE MONEY DRAMA\nESTD. 2026", size: 96, tone: Ink.Blue.cream.opacity(0.55), overrideID: "welcome.seal")
                 .padding(.top, 2)
 
             VStack(spacing: liveOverrides.number("welcome.actions.spacing", fallback: 12)) {
@@ -1821,25 +2018,25 @@ private struct ReceiptTextField: View {
 
 private struct TripsEmptyInkScreen: View {
     let onStart: () -> Void
-    let onTrips: () -> Void
+    let onTab: (InkBottomTab) -> Void
 
     var body: some View {
             InkAppShell(
-                title: "My Trips",
+                title: "My Expenses",
                 rightIcon: "plus",
                 onRight: onStart,
                 activeTab: .trips,
-                onTab: { tab in
-                    if tab == .trips {
-                        onTrips()
-                    }
-                }
+                onTab: onTab,
+                visibleTabs: [.trips, .profile],
+                inlineTitleIcon: true,
+                topBarTopSpacing: 8
             ) {
-            Spacer(minLength: 40)
+            Spacer(minLength: 64)
             MascotThinking(size: 172)
                 .frame(maxWidth: .infinity)
+                .padding(.bottom, 8)
 
-            VStack(spacing: 14) {
+            VStack(spacing: 18) {
                 SerifTitle(text: "No tabs running", size: 36)
                     .multilineTextAlignment(.center)
                 HStack {
@@ -1848,17 +2045,21 @@ private struct TripsEmptyInkScreen: View {
                     Rectangle().fill(Ink.Blue.cream.opacity(0.7)).frame(height: 1)
                 }
                 .frame(width: 180)
-                Text("When you start a trip, it’ll show up here\nAdd friends, jot expenses, and let BillBandit do the math")
+                Text("When you start an expense, it’ll show up here\n\nAdd friends, jot expenses, and let BillBandit do the math")
                     .font(.system(size: 15, design: .rounded))
                     .foregroundStyle(Ink.Blue.cream.opacity(0.82))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
-                    .padding(.horizontal, 18)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.75)
+                    .padding(.horizontal, 12)
             }
             .frame(maxWidth: .infinity)
 
             PrimaryCreamButton(title: "Start a trip", action: onStart)
-                .padding(.top, 24)
+                .padding(.top, 32)
+
+            Spacer(minLength: 24)
         }
     }
 }
@@ -1871,21 +2072,60 @@ private struct YourTripsInkScreen: View {
     let onTab: (InkBottomTab) -> Void
 
     var body: some View {
-        InkAppShell(title: "Your Trips", rightIcon: "plus", onRight: onAdd, activeTab: .trips, onTab: onTab, contentSpacing: 10) {
-            ForEach(trips) { trip in
-                let tripSummary = summary(trip)
-                TripCard(
-                    title: trip.location.uppercased(),
-                    meta: "\(trip.dates.uppercased()) · \(trip.friends.count) FRIENDS · \(trip.expenses.count) ENTRIES",
-                    stamp: trip.status == .final ? "FINAL" : "OPEN",
-                    leftLabel: trip.status == .final ? "Total booked" : "Running tab",
-                    leftAmount: trip.status == .final ? rupees(tripSummary.total) : "~\(rupees(tripSummary.total))",
-                    rightLabel: tripSummary.userNet >= 0 ? "You’re owed" : "You owe",
-                    rightAmount: signedRupees(abs(tripSummary.userNet), sign: tripSummary.userNet >= 0 ? "" : "−"),
-                    showsMascotStamp: trip.status == .open,
-                    action: { onOpen(trip) }
-                )
-                .accessibilityIdentifier("tripCard.\(trip.title)")
+        InkAppShell(
+            title: "Your Expenses",
+            rightIcon: "plus",
+            onRight: onAdd,
+            activeTab: .trips,
+            onTab: onTab,
+            visibleTabs: [.trips, .profile],
+            contentSpacing: 10,
+            inlineTitleIcon: true,
+            topBarTopSpacing: 8
+        ) {
+            if trips.isEmpty {
+                Spacer(minLength: 64)
+                MascotThinking(size: 172)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 8)
+
+                VStack(spacing: 18) {
+                    SerifTitle(text: "No expenses yet", size: 36)
+                        .multilineTextAlignment(.center)
+                    HStack {
+                        Rectangle().fill(Ink.Blue.cream.opacity(0.7)).frame(height: 1)
+                        Text("✦").foregroundStyle(Ink.Blue.cream)
+                        Rectangle().fill(Ink.Blue.cream.opacity(0.7)).frame(height: 1)
+                    }
+                    .frame(width: 180)
+                    Text("Nothing to show here yet\n\nAdd an expense and it’ll show up here")
+                        .font(.system(size: 15, design: .rounded))
+                        .foregroundStyle(Ink.Blue.cream.opacity(0.82))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.75)
+                        .padding(.horizontal, 12)
+                }
+                .frame(maxWidth: .infinity)
+
+                Spacer(minLength: 24)
+            } else {
+                ForEach(trips) { trip in
+                    let tripSummary = summary(trip)
+                    TripCard(
+                        title: trip.location.uppercased(),
+                        meta: "\(trip.dates.uppercased()) · \(trip.friends.count) FRIENDS · \(trip.expenses.count) ENTRIES",
+                        stamp: trip.status == .final ? "FINAL" : "OPEN",
+                        leftLabel: trip.status == .final ? "Total booked" : "Running tab",
+                        leftAmount: trip.status == .final ? rupees(tripSummary.total) : "~\(rupees(tripSummary.total))",
+                        rightLabel: tripSummary.userNet >= 0 ? "You’re owed" : "You owe",
+                        rightAmount: signedRupees(abs(tripSummary.userNet), sign: tripSummary.userNet >= 0 ? "" : "−"),
+                        showsMascotStamp: trip.status == .open,
+                        action: { onOpen(trip) }
+                    )
+                    .accessibilityIdentifier("tripCard.\(trip.title)")
+                }
             }
         }
     }
@@ -1952,6 +2192,159 @@ private struct AmountBlock: View {
     }
 }
 
+@MainActor
+final class EditLayoutReadout: ObservableObject {
+    @Published var offsets: [String: CGSize] = [:]
+    @Published var scales: [String: CGFloat] = [:]
+    @Published var selected: String?
+
+    let order: [String]
+
+    init(order: [String]) {
+        self.order = order
+    }
+
+    func offset(for label: String) -> CGSize { offsets[label] ?? .zero }
+    func scale(for label: String) -> CGFloat { scales[label] ?? 1 }
+
+    func bumpScale(_ label: String, by delta: CGFloat) {
+        let next = max(0.3, min(2.5, scale(for: label) + delta))
+        scales[label] = next
+    }
+
+    func reset(_ label: String) {
+        offsets[label] = .zero
+        scales[label] = 1
+    }
+
+    func summary(for label: String) -> String {
+        let o = offset(for: label)
+        let s = scale(for: label)
+        return "\(label): dx=\(Int(o.width.rounded())) dy=\(Int(o.height.rounded())) scale=\(String(format: "%.2f", s))"
+    }
+}
+
+private struct EditableElement<Content: View>: View {
+    @EnvironmentObject private var readout: EditLayoutReadout
+    let label: String
+    var isContainer = false
+    @ViewBuilder var content: Content
+
+    @State private var dragStart: CGSize = .zero
+
+    private var isEnabled: Bool { InkEditMode.isEnabled() }
+
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                readout.selected = label
+                readout.offsets[label] = CGSize(
+                    width: dragStart.width + value.translation.width,
+                    height: dragStart.height + value.translation.height
+                )
+            }
+            .onEnded { _ in
+                dragStart = readout.offset(for: label)
+            }
+    }
+
+    var body: some View {
+        if isEnabled {
+            let offset = readout.offset(for: label)
+            let scale = readout.scale(for: label)
+            let isSelected = readout.selected == label
+            decorated(content, offset: offset, scale: scale, isSelected: isSelected)
+        } else {
+            content
+        }
+    }
+
+    @ViewBuilder
+    private func decorated(_ inner: Content, offset: CGSize, scale: CGFloat, isSelected: Bool) -> some View {
+        let labelTag = Text(label)
+            .font(Ink.mono(9, weight: .heavy))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(isSelected ? Color.yellow : Color.white.opacity(0.85))
+            .offset(x: 2, y: 2)
+        let border = RoundedRectangle(cornerRadius: 6)
+            .strokeBorder(style: StrokeStyle(lineWidth: isSelected ? 2 : 1, dash: [5, 4]))
+            .foregroundStyle(isSelected ? Color.yellow : Color.white.opacity(0.7))
+            .allowsHitTesting(false)
+
+        if isContainer {
+            // Container: let inner EditableElements keep their gestures; drag the
+            // container only from its border via a simultaneousGesture.
+            inner
+                .scaleEffect(scale)
+                .overlay(border)
+                .overlay(alignment: .topLeading) { labelTag }
+                .offset(offset)
+                .simultaneousGesture(dragGesture)
+        } else {
+            // Leaf: block the inner control from swallowing touches; a transparent
+            // hit layer drives drag + tap-to-select for the whole element.
+            inner
+                .allowsHitTesting(false)
+                .scaleEffect(scale)
+                .overlay(
+                    Rectangle()
+                        .fill(Color.white.opacity(0.001))
+                        .contentShape(Rectangle())
+                        .gesture(dragGesture)
+                        .onTapGesture { readout.selected = label }
+                )
+                .overlay(border)
+                .overlay(alignment: .topLeading) { labelTag }
+                .offset(offset)
+        }
+    }
+}
+
+private struct EditLayoutHUD: View {
+    @EnvironmentObject var readout: EditLayoutReadout
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(readout.order, id: \.self) { label in
+                Text(readout.summary(for: label))
+                    .font(Ink.mono(9, weight: readout.selected == label ? .heavy : .regular))
+                    .foregroundStyle(readout.selected == label ? Color.yellow : Color.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 3)
+                    .contentShape(Rectangle())
+                    .onTapGesture { readout.selected = label }
+            }
+
+            HStack(spacing: 10) {
+                Text(readout.selected ?? "tap a row ↑")
+                    .font(Ink.mono(11, weight: .heavy))
+                    .foregroundStyle(readout.selected == nil ? Color.orange : Color.yellow)
+                Spacer()
+                let target = readout.selected ?? readout.order.first ?? ""
+                stepButton("–") { readout.bumpScale(target, by: -0.05) }
+                stepButton("+") { readout.bumpScale(target, by: 0.05) }
+                stepButton("⟲") { readout.reset(target) }
+            }
+        }
+        .padding(10)
+        .background(Color.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 12)
+    }
+
+    private func stepButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(Ink.mono(15, weight: .heavy))
+                .foregroundStyle(.black)
+                .frame(width: 30, height: 26)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct NewLedgerInkScreen: View {
     @Binding var draft: InkTripDraft
     var isEditing = false
@@ -1960,8 +2353,10 @@ private struct NewLedgerInkScreen: View {
     let onOpen: () -> Void
     let onAddFriend: () -> Void
     @State private var isShowingDatePicker = false
-    @State private var proposedStartDate = InkTripDraft.fresh.startDate
-    @State private var proposedEndDate = InkTripDraft.fresh.endDate
+    @State private var proposedDate = InkTripDraft.fresh.startDate
+    @StateObject private var editReadout = EditLayoutReadout(order: [
+        "mascot", "receipt", "name", "date", "friends-label", "friends-chips", "add-chip", "seal", "button"
+    ])
     private let defaultFriendCandidates = ["You", "Meera", "Arjun", "Kabir"]
 
     private var friendCandidates: [String] {
@@ -1973,54 +2368,99 @@ private struct NewLedgerInkScreen: View {
     }
 
     var body: some View {
-        InkAppShell(title: isEditing ? "Edit Ledger" : "New Ledger", leftIcon: "xmark", onLeft: onClose) {
-            MascotPeek(size: 124)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, -40)
-                .zIndex(2)
+        GeometryReader { proxy in
+            ZStack(alignment: .bottom) {
+                InkAppShell(
+                    title: isEditing ? "Edit Expense" : "New Expense",
+                    leftIcon: "xmark",
+                    onLeft: onClose,
+                    scrollDisabled: true
+                ) {
+                    Spacer(minLength: 0)
 
-            InkReceipt {
-                VStack(alignment: .leading, spacing: 17) {
-                    ReceiptTextField(label: "Ledger name", value: $draft.title, identifier: "newLedger.name")
-                    ReceiptTextField(label: "Where", value: $draft.location, script: false, identifier: "newLedger.location")
-                    ReceiptDateField(label: "Dates", value: draft.dates, action: {
-                        proposedStartDate = draft.startDate
-                        proposedEndDate = draft.endDate
-                        isShowingDatePicker = true
-                    })
-
-                    ReceiptLabel(text: "Friends")
-                    ChipLine(items: friendCandidates, selectedItems: selectedFriends, onTap: toggleFriend)
-                    if isRemoteBacked {
-                        Text("Start the ledger first, then add friends from the live ledger with their BillBandit email.")
-                            .font(Ink.mono(11, weight: .medium))
-                            .foregroundStyle(Ink.Blue.inkSoft)
-                            .lineSpacing(3)
-                    } else {
-                        ChipLine(items: ["+ add"], onTap: { item in
-                            if item == "+ add" {
-                                onAddFriend()
-                            }
-                        })
+                    EditableElement(label: "mascot") {
+                        MascotPeek(size: 270)
+                            .frame(maxWidth: .infinity)
                     }
+                    .padding(.bottom, -82)
+                    .zIndex(2)
 
-                    HStack {
-                        Spacer()
-                        RoundSeal(text: "Fair\nShare", size: 64)
+                    EditableElement(label: "receipt", isContainer: true) {
+                        InkReceipt(bottomScallop: true) {
+                            VStack(alignment: .leading, spacing: 17) {
+                                EditableElement(label: "name") {
+                                    ReceiptTextField(label: "Expense Name", value: $draft.title, identifier: "newLedger.name")
+                                }
+                                EditableElement(label: "date") {
+                                    ReceiptDateField(label: "Expense Date", value: draft.dates, action: {
+                                        proposedDate = draft.startDate
+                                        isShowingDatePicker = true
+                                    })
+                                }
+
+                                EditableElement(label: "friends-label") {
+                                    ReceiptLabel(text: "Friends")
+                                }
+                                EditableElement(label: "friends-chips") {
+                                    ChipLine(
+                                        items: friendCandidates,
+                                        selectedItems: selectedFriends,
+                                        labelFor: disambiguatedFriendLabel,
+                                        onTap: toggleFriend
+                                    )
+                                }
+                                if isRemoteBacked {
+                                    Text("Start the ledger first, then add friends from the live ledger with their BillBandit email.")
+                                        .font(Ink.mono(11, weight: .medium))
+                                        .foregroundStyle(Ink.Blue.inkSoft)
+                                        .lineSpacing(3)
+                                } else {
+                                    EditableElement(label: "add-chip") {
+                                        ChipLine(items: ["+ add"], onTap: { item in
+                                            if item == "+ add" {
+                                                onAddFriend()
+                                            }
+                                        })
+                                    }
+                                }
+
+                                HStack {
+                                    Spacer()
+                                    EditableElement(label: "seal") {
+                                        FairShareLedgerStamp(size: 82)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .padding(.bottom, 8)
+                        }
                     }
                 }
-            }
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
 
-            PrimaryCreamButton(title: isEditing ? "Update the ledger" : "Open the ledger", action: onOpen)
-            .accessibilityIdentifier("newLedger.open")
+                EditableElement(label: "button") {
+                    PrimaryCreamButton(title: isEditing ? "Update the ledger" : "Open the ledger", action: onOpen)
+                        .accessibilityIdentifier("newLedger.open")
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
+        .overlay(alignment: .top) {
+            if InkEditMode.isEnabled() {
+                EditLayoutHUD()
+                    .environmentObject(editReadout)
+                    .padding(.top, 64)
+            }
+        }
+        .environmentObject(editReadout)
         .sheet(isPresented: $isShowingDatePicker) {
             NewLedgerDatePickerSheet(
-                startDate: $proposedStartDate,
-                endDate: $proposedEndDate,
+                date: $proposedDate,
                 onCancel: { isShowingDatePicker = false },
                 onApply: {
-                    draft.updateDates(start: proposedStartDate, end: proposedEndDate)
+                    draft.updateDates(start: proposedDate, end: proposedDate)
                     isShowingDatePicker = false
                 }
             )
@@ -2055,6 +2495,10 @@ private struct NewLedgerInkScreen: View {
             draft.friendNames.append(name)
         }
     }
+
+    private func disambiguatedFriendLabel(_ name: String) -> String {
+        FriendChipLabeler.label(for: name, in: friendCandidates)
+    }
 }
 
 private struct ReceiptDateField: View {
@@ -2087,16 +2531,9 @@ private struct ReceiptDateField: View {
 }
 
 private struct NewLedgerDatePickerSheet: View {
-    @Binding var startDate: Date
-    @Binding var endDate: Date
+    @Binding var date: Date
     let onCancel: () -> Void
     let onApply: () -> Void
-    @State private var selectionPhase: SelectionPhase = .start
-
-    private enum SelectionPhase {
-        case start
-        case end
-    }
 
     private var calendar: Calendar {
         Calendar.current
@@ -2106,13 +2543,13 @@ private struct NewLedgerDatePickerSheet: View {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_IN")
         formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: startDate)
+        return formatter.string(from: date)
     }
 
     private var daysInDisplayedMonth: [Date] {
         guard
-            let monthInterval = calendar.dateInterval(of: .month, for: startDate),
-            let dayRange = calendar.range(of: .day, in: .month, for: startDate)
+            let monthInterval = calendar.dateInterval(of: .month, for: date),
+            let dayRange = calendar.range(of: .day, in: .month, for: date)
         else { return [] }
         return dayRange.compactMap { day in
             calendar.date(byAdding: .day, value: day - 1, to: monthInterval.start)
@@ -2123,118 +2560,82 @@ private struct NewLedgerDatePickerSheet: View {
         ZStack {
             Ink.Blue.screen.ignoresSafeArea()
             VStack(spacing: 16) {
-                ReceiptLabel(text: "Choose trip dates", color: Ink.Blue.cream)
+                ReceiptLabel(text: "Choose expense date", color: Ink.Blue.cream)
                     .padding(.top, 18)
 
                 InkReceipt(topScallop: true, bottomScallop: true, padding: 16) {
                     VStack(alignment: .leading, spacing: 16) {
-                        HStack(spacing: 12) {
-                            dateSummary(label: "Start", date: startDate, isActive: selectionPhase == .start)
-                            dateSummary(label: "End", date: endDate, isActive: selectionPhase == .end)
-                        }
-                        .accessibilityIdentifier("newLedger.dateRangeRow")
+                        dateSummary(label: "Date", date: date)
 
                         DashedRule()
 
                         HStack {
                             ReceiptLabel(text: monthTitle)
                             Spacer()
-                            Text(selectionPhase == .start ? "Pick start" : "Pick end")
-                                .font(Ink.mono(11, weight: .bold))
-                                .foregroundStyle(Ink.Blue.cobalt)
                         }
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                ForEach(daysInDisplayedMonth, id: \.self) { date in
-                                    dateButton(for: date)
+                                ForEach(daysInDisplayedMonth, id: \.self) { day in
+                                    dateButton(for: day)
                                 }
                             }
                             .padding(.vertical, 2)
                         }
-                        .accessibilityIdentifier("newLedger.rangeCalendar")
+                        .accessibilityIdentifier("newLedger.dateCalendar")
                     }
                 }
 
                 HStack(spacing: 12) {
                     OutlineCreamButton(title: "Cancel", action: onCancel)
-                    PrimaryCreamButton(title: "Use dates", action: onApply)
+                    PrimaryCreamButton(title: "Use date", action: onApply)
                         .accessibilityIdentifier("newLedger.applyDates")
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 18)
             }
         }
-        .onAppear {
-            if endDate < startDate {
-                endDate = startDate
-            }
-        }
     }
 
-    private func dateSummary(label: String, date: Date, isActive: Bool) -> some View {
+    private func dateSummary(label: String, date: Date) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             ReceiptLabel(text: label)
             Text(shortDate(date))
                 .font(Ink.mono(16, weight: .semibold))
-                .foregroundStyle(isActive ? Ink.Blue.cream : Ink.Blue.ink)
+                .foregroundStyle(Ink.Blue.cream)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(isActive ? Ink.Blue.ink : Color.clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(Ink.Blue.ink, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Ink.Blue.ink.opacity(0.45), lineWidth: 1))
     }
 
-    private func dateButton(for date: Date) -> some View {
-        let normalizedDate = calendar.startOfDay(for: date)
-        let normalizedStart = calendar.startOfDay(for: startDate)
-        let normalizedEnd = calendar.startOfDay(for: endDate)
-        let isStart = normalizedDate == normalizedStart
-        let isEnd = normalizedDate == normalizedEnd
-        let isInRange = normalizedDate > normalizedStart && normalizedDate < normalizedEnd
-        let isSelected = isStart || isEnd
+    private func dateButton(for day: Date) -> some View {
+        let isSelected = calendar.startOfDay(for: day) == calendar.startOfDay(for: date)
 
         return Button {
-            select(date)
+            date = calendar.startOfDay(for: day)
         } label: {
             VStack(spacing: 5) {
-                Text(weekday(date))
+                Text(weekday(day))
                     .font(Ink.mono(9, weight: .bold))
-                Text("\(calendar.component(.day, from: date))")
+                Text("\(calendar.component(.day, from: day))")
                     .font(Ink.mono(16, weight: .bold))
             }
             .foregroundStyle(isSelected ? Ink.Blue.cream : Ink.Blue.ink)
             .frame(width: 46, height: 54)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isSelected ? Ink.Blue.cobalt : (isInRange ? Ink.Blue.cobalt.opacity(0.12) : Color.clear))
+                    .fill(isSelected ? Ink.Blue.cobalt : Color.clear)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(isSelected || isInRange ? Ink.Blue.cobalt : Ink.Blue.ink.opacity(0.25), lineWidth: 1)
+                    .stroke(isSelected ? Ink.Blue.cobalt : Ink.Blue.ink.opacity(0.25), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("newLedger.date.\(calendar.component(.day, from: date))")
-    }
-
-    private func select(_ date: Date) {
-        let pickedDate = calendar.startOfDay(for: date)
-        switch selectionPhase {
-        case .start:
-            startDate = pickedDate
-            endDate = pickedDate
-            selectionPhase = .end
-        case .end:
-            if pickedDate < startDate {
-                endDate = startDate
-                startDate = pickedDate
-            } else {
-                endDate = pickedDate
-            }
-            selectionPhase = .start
-        }
+        .accessibilityIdentifier("newLedger.date.\(calendar.component(.day, from: day))")
     }
 
     private func shortDate(_ date: Date) -> String {
@@ -2611,53 +3012,45 @@ private struct FormalEntry: View {
 
 private struct AddFriendInkScreen: View {
     @State private var name = ""
-    @State private var contact = ""
     @State private var localErrorMessage: String?
     @State private var isSaving = false
+    @State private var usernameStatus: AddFriendUsernameStatus = .idle
+    @State private var usernameValidationTask: Task<Void, Never>?
 
     let errorMessage: String?
     let requiresContact: Bool
     let onClose: () -> Void
+    let onValidateUsername: (String) async -> Bool
     let onAdd: (String, String) async -> Bool
 
     private var visibleErrorMessage: String? {
         errorMessage ?? localErrorMessage
     }
 
+    private var hasName: Bool {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
     private var canSubmit: Bool {
-        let hasName = name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-        let hasContact = contact.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-        return requiresContact ? hasContact : (hasName || hasContact)
+        hasName && usernameStatus == .found
     }
 
     var body: some View {
         InkAppShell(title: "Add Friend", leftIcon: "xmark", onLeft: onClose, contentSpacing: 12) {
-            MascotLedger(size: 96)
+            MascotLedger(size: 192)
                 .frame(maxWidth: .infinity)
-                .padding(.bottom, -18)
+                .padding(.bottom, 8)
                 .zIndex(2)
 
             InkReceipt(padding: 16) {
                 VStack(alignment: .leading, spacing: 16) {
-                    ReceiptLabel(text: "Find friend on BillBandit")
-                        .frame(maxWidth: .infinity)
-                    DashedRule()
-
                     ReceiptTextField(
-                        label: "Friend name",
+                        label: "Username",
                         value: $name,
-                        submitLabel: .next,
-                        script: false,
-                        identifier: "addFriend.name"
-                    )
-                    ReceiptTextField(
-                        label: requiresContact ? "BillBandit email" : "Phone or email",
-                        value: $contact,
-                        keyboardType: .emailAddress,
                         autocapitalization: .never,
                         submitLabel: .done,
                         script: false,
-                        identifier: "addFriend.contact",
+                        identifier: "addFriend.name",
                         onSubmit: {
                             if canSubmit {
                                 Task { await save() }
@@ -2665,7 +3058,9 @@ private struct AddFriendInkScreen: View {
                         }
                     )
 
-                    Text(requiresContact ? "Use the email address they signed up with. We’ll only add verified BillBandit members to this ledger." : "Add a name now, then invite them when the ledger is live.")
+                    UsernameLookupStatusView(status: usernameStatus)
+
+                    Text("Find your friends with their username")
                         .font(Ink.mono(11, weight: .medium))
                         .foregroundStyle(Ink.Blue.inkSoft)
                         .lineSpacing(3)
@@ -2674,36 +3069,28 @@ private struct AddFriendInkScreen: View {
                         InkInlineError(message: visibleErrorMessage)
                     }
 
-                    HStack {
+                    HStack(alignment: .center, spacing: 12) {
+                        FriendVerifiedStamp()
                         Spacer()
-                        RoundSeal(text: "Invite\nVerified", size: 64)
+                        AddFriendSubmitButton(title: "Add friend", isLoading: isSaving, isDisabled: canSubmit == false) {
+                            Task { await save() }
+                        }
+                        .accessibilityIdentifier("addFriend.save")
                     }
                 }
             }
-
-            PrimaryCreamButton(title: "Add friend", isLoading: isSaving, isDisabled: canSubmit == false) {
-                Task { await save() }
-            }
-                .accessibilityIdentifier("addFriend.save")
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(canSubmit ? "Add friend" : "Done") {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                    if canSubmit {
-                        Task { await save() }
-                    }
-                }
-                .disabled(isSaving)
-                .accessibilityIdentifier(canSubmit ? "addFriend.keyboardSubmit" : "keyboard.done")
-            }
+        .onChange(of: name) { _, newValue in
+            validateUsername(newValue)
+        }
+        .onDisappear {
+            usernameValidationTask?.cancel()
         }
     }
 
     private func save() async {
         guard canSubmit else {
-            localErrorMessage = requiresContact ? "Enter your friend’s BillBandit email." : "Enter a name or contact."
+            localErrorMessage = hasName ? "Choose a valid BillBandit username." : "Enter a username."
             return
         }
 
@@ -2711,11 +3098,128 @@ private struct AddFriendInkScreen: View {
         localErrorMessage = nil
         defer { isSaving = false }
 
-        if await onAdd(name, contact) {
+        if await onAdd(name, name) {
             onClose()
         } else if visibleErrorMessage == nil {
-            localErrorMessage = "Couldn’t add this friend. Check the email and try again."
+            localErrorMessage = "Couldn’t add this friend. Check the username and try again."
         }
+    }
+
+    private func validateUsername(_ rawUsername: String) {
+        usernameValidationTask?.cancel()
+        let username = rawUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard username.isEmpty == false else {
+            usernameStatus = .idle
+            return
+        }
+
+        usernameStatus = .checking
+        usernameValidationTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard Task.isCancelled == false else { return }
+            let exists = await onValidateUsername(username)
+            guard Task.isCancelled == false else { return }
+            await MainActor.run {
+                usernameStatus = exists ? .found : .notFound
+            }
+        }
+    }
+}
+
+private struct AddFriendSubmitButton: View {
+    let title: String
+    var isLoading = false
+    var isDisabled = false
+    var action: () -> Void
+
+    var body: some View {
+        Button {
+            guard isDisabled == false, isLoading == false else { return }
+            action()
+        } label: {
+            HStack(spacing: 8) {
+                if isLoading {
+                    ProgressView()
+                        .tint(Ink.Blue.cream)
+                        .controlSize(.small)
+                }
+                Text(isLoading ? "Saving" : title)
+                    .font(Ink.serif(18, weight: .semibold))
+            }
+            .foregroundStyle(Ink.Blue.cream.opacity(isDisabled ? 0.62 : 1))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Ink.Blue.blue.opacity(isDisabled ? 0.58 : 1), in: RoundedRectangle(cornerRadius: 3))
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .stroke(Ink.Blue.cobalt.opacity(0.55), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled || isLoading)
+    }
+}
+
+private enum AddFriendUsernameStatus: Equatable {
+    case idle
+    case checking
+    case found
+    case notFound
+}
+
+private struct UsernameLookupStatusView: View {
+    let status: AddFriendUsernameStatus
+
+    var body: some View {
+        Group {
+            switch status {
+            case .idle:
+                EmptyView()
+            case .checking:
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.mini)
+                    Text("Checking username")
+                }
+                .foregroundStyle(Ink.Blue.inkSoft)
+            case .found:
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Username found")
+                }
+                .foregroundStyle(Ink.Blue.success)
+            case .notFound:
+                HStack(spacing: 6) {
+                    Image(systemName: "xmark.circle.fill")
+                    Text("Username not found")
+                }
+                .foregroundStyle(Ink.Blue.inkSoft)
+            }
+        }
+        .font(Ink.mono(11, weight: .bold))
+        .frame(minHeight: status == .idle ? 0 : 14, alignment: .leading)
+        .accessibilityIdentifier("addFriend.usernameStatus")
+    }
+}
+
+private struct FriendVerifiedStamp: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Ink.Blue.cobalt, style: StrokeStyle(lineWidth: 1.6, dash: [2.5, 2.5]))
+            Circle()
+                .stroke(Ink.Blue.cobalt.opacity(0.85), lineWidth: 1.2)
+                .padding(5)
+            Text("FRIEND\nVERIFIED")
+                .font(Ink.mono(7.5, weight: .heavy))
+                .tracking(0.8)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(Ink.Blue.cobalt)
+                .lineSpacing(1)
+        }
+        .frame(width: 62, height: 62)
+        .rotationEffect(.degrees(30))
     }
 }
 

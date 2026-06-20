@@ -107,6 +107,14 @@ actor MockBillBanditAPI {
         case ("GET", "/api/mobile/auth/me"):
             value = UserResponse(user: currentUser)
 
+        case ("GET", let lookupPath) where lookupPath.hasPrefix("/api/mobile/users/lookup"):
+            let username = URLComponents(string: lookupPath)?
+                .queryItems?
+                .first(where: { $0.name == "username" })?
+                .value ?? ""
+            let foundUser = user(username: username)
+            value = UsernameLookupResponse(exists: foundUser != nil, user: foundUser)
+
         case ("POST", "/api/mobile/auth/otp/start"):
             let request = try decode(OTPStartRequest.self, from: body)
             let challengeID = "mock-challenge-\(UUID().uuidString)"
@@ -186,8 +194,18 @@ actor MockBillBanditAPI {
         case ("POST", let groupMemberPath) where groupMemberPath.hasSuffix("/members"):
             let groupId = pathComponents(path).dropLast().last ?? ""
             let request = try decode(AddMemberRequest.self, from: body)
-            guard let user = user(email: request.email) else {
-                throw APIError.server("No user found with that email address")
+            let user: UserDTO?
+            if let username = request.username?.trimmingCharacters(in: .whitespacesAndNewlines),
+               username.isEmpty == false {
+                user = self.user(username: username)
+            } else if let email = request.email?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      email.isEmpty == false {
+                user = self.user(email: email)
+            } else {
+                user = nil
+            }
+            guard let user else {
+                throw APIError.server("No user found with that username")
             }
             guard let index = groups.firstIndex(where: { $0.id == groupId }) else {
                 throw APIError.server("Group not found")
@@ -476,6 +494,12 @@ actor MockBillBanditAPI {
             ?? [alice, bob, carol, dave].first { $0.email?.lowercased() == email.lowercased() }
     }
 
+    private func user(username: String) -> UserDTO? {
+        let normalizedUsername = username.normalizedMockUsername
+        return dynamicUsers.values.first { $0.matches(username: normalizedUsername) }
+            ?? [alice, bob, carol, dave].first { $0.matches(username: normalizedUsername) }
+    }
+
     private func mockAuthUser(identifier: String) -> UserDTO {
         if identifier.contains("@") {
             return UserDTO(
@@ -543,6 +567,27 @@ private struct MockFixtureUser: Decodable {
 
     var userDTO: UserDTO {
         UserDTO(id: id, name: name, email: email, image: image)
+    }
+}
+
+private extension UserDTO {
+    func matches(username normalizedUsername: String) -> Bool {
+        [
+            preferredName,
+            name,
+            email?.split(separator: "@").first.map(String.init),
+            email
+        ]
+        .compactMap { $0?.normalizedMockUsername }
+        .contains(normalizedUsername)
+    }
+}
+
+private extension String {
+    var normalizedMockUsername: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .filter { $0.isLetter || $0.isNumber }
     }
 }
 

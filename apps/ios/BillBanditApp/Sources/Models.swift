@@ -202,6 +202,11 @@ struct MemberResponse: Codable {
     let member: MemberDTO
 }
 
+struct UsernameLookupResponse: Codable {
+    let exists: Bool
+    let user: UserDTO?
+}
+
 struct ExpenseResponse: Codable {
     let expense: ExpenseDTO
 }
@@ -233,7 +238,18 @@ struct CreateGroupRequest: Codable {
 }
 
 struct AddMemberRequest: Codable {
-    let email: String
+    let email: String?
+    let username: String?
+
+    init(email: String) {
+        self.email = email
+        self.username = nil
+    }
+
+    init(username: String) {
+        self.email = nil
+        self.username = username
+    }
 }
 
 struct CreateTransactionRequest: Codable {

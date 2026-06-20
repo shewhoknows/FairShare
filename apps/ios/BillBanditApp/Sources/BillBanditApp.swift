@@ -235,7 +235,7 @@ private struct AuthenticatedBillBanditRootView: View {
                 },
                 onWelcomeCreateAccount: {
                     authMessage = nil
-                    authStep = .start
+                    authStep = .completeProfile(identifier: nil, draft: .empty)
                     signedOutDestination = .auth
                 }
             )
@@ -422,7 +422,7 @@ private struct AuthenticatedBillBanditRootView: View {
             authStep = .start
         case .completeProfile:
             if case .signedOut = authStore.state {
-                authStep = .start
+                signedOutDestination = .welcome
             }
         }
     }
@@ -431,14 +431,28 @@ private struct AuthenticatedBillBanditRootView: View {
 private struct InkAuthLoadingView: View {
     var body: some View {
         ZStack {
-            Color(red: 0.10, green: 0.16, blue: 0.82).ignoresSafeArea()
-            VStack(spacing: 18) {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.14, green: 0.19, blue: 0.88),
+                    Color(red: 0.10, green: 0.16, blue: 0.82),
+                    Color(red: 0.05, green: 0.12, blue: 0.66)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 22) {
                 MascotStamp(size: 92)
-                Text("CHECKING RECEIPTS")
-                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                    .tracking(3)
-                    .foregroundStyle(Color(red: 0.64, green: 0.68, blue: 0.94))
+                    .accessibilityHidden(true)
+
+                Text("CHECKING PROFILE DETAILS")
+                    .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                    .tracking(5)
+                    .foregroundStyle(Color(red: 0.66, green: 0.70, blue: 0.94))
+
                 ProgressView()
+                    .controlSize(.large)
                     .tint(Color(red: 0.96, green: 0.94, blue: 0.88))
             }
         }
