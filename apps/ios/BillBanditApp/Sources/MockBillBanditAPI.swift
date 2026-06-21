@@ -2,6 +2,8 @@ import Foundation
 
 actor MockBillBanditAPI {
     static let shared = MockBillBanditAPI()
+    private static let openGroupStatus = "OPEN"
+    private static let finalizedGroupStatus = "FINALIZED"
 
     private let alice: UserDTO
     private let bob: UserDTO
@@ -75,6 +77,9 @@ actor MockBillBanditAPI {
                 image: nil,
                 currency: group.currency,
                 category: group.category,
+                status: group.status ?? Self.openGroupStatus,
+                finalizedAt: group.finalizedAt,
+                finalizedById: group.finalizedById,
                 memberCount: members.count,
                 expenseCount: fixtureExpenses.filter { $0.groupId == group.id }.count,
                 members: members,
@@ -183,6 +188,7 @@ actor MockBillBanditAPI {
                 image: nil,
                 currency: request.currency,
                 category: request.category,
+                status: Self.openGroupStatus,
                 memberCount: 1,
                 expenseCount: 0,
                 members: [member],
@@ -193,6 +199,14 @@ actor MockBillBanditAPI {
 
         case ("POST", let groupMemberPath) where groupMemberPath.hasSuffix("/members"):
             let groupId = pathComponents(path).dropLast().last ?? ""
+            guard let index = groups.firstIndex(where: { $0.id == groupId }) else {
+                throw APIError.server("Group not found")
+            }
+            guard groups[index].members.contains(where: { $0.userId == currentUser.id }) else {
+                throw APIError.server("Forbidden")
+            }
+            try ensureMutableGroup(groups[index])
+
             let request = try decode(AddMemberRequest.self, from: body)
             let user: UserDTO?
             if let username = request.username?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -207,12 +221,6 @@ actor MockBillBanditAPI {
             guard let user else {
                 throw APIError.server("No user found with that username")
             }
-            guard let index = groups.firstIndex(where: { $0.id == groupId }) else {
-                throw APIError.server("Group not found")
-            }
-            guard groups[index].members.contains(where: { $0.userId == currentUser.id }) else {
-                throw APIError.server("Forbidden")
-            }
             if groups[index].members.contains(where: { $0.userId == user.id }) {
                 throw APIError.server("User is already a member of this group")
             }
@@ -225,12 +233,46 @@ actor MockBillBanditAPI {
                 image: group.image,
                 currency: group.currency,
                 category: group.category,
+                status: group.status,
+                finalizedAt: group.finalizedAt,
+                finalizedById: group.finalizedById,
                 memberCount: group.memberCount + 1,
                 expenseCount: group.expenseCount,
                 members: group.members + [member],
                 expenses: nil
             )
             value = MemberResponse(member: member)
+
+        case ("POST", let finalizePath) where finalizePath.hasPrefix("/api/mobile/groups/") && finalizePath.hasSuffix("/finalize"):
+            let groupId = pathComponents(finalizePath).dropLast().last ?? ""
+            guard let index = groups.firstIndex(where: { $0.id == groupId }) else {
+                throw APIError.server("Group not found")
+            }
+            let group = groups[index]
+            guard group.members.contains(where: { $0.userId == currentUser.id }) else {
+                throw APIError.server("Forbidden")
+            }
+            if group.isFinalized == false {
+                groups[index] = GroupDTO(
+                    id: group.id,
+                    name: group.name,
+                    description: group.description,
+                    image: group.image,
+                    currency: group.currency,
+                    category: group.category,
+                    status: Self.finalizedGroupStatus,
+                    finalizedAt: today,
+                    finalizedById: currentUser.id,
+                    memberCount: group.memberCount,
+                    expenseCount: group.expenseCount,
+                    members: group.members,
+                    expenses: nil
+                )
+            }
+            guard let finalizedGroup = detailedGroup(id: groupId) else {
+                throw APIError.server("Group not found")
+            }
+            value = GroupResponse(group: finalizedGroup, balances: balances(for: finalizedGroup))
 
         case ("GET", let groupPath) where groupPath.hasPrefix("/api/mobile/groups/"):
             let groupId = pathComponents(groupPath).last ?? ""
@@ -253,6 +295,8 @@ actor MockBillBanditAPI {
             guard expenses[index].paidById == currentUser.id else {
                 throw APIError.server("Only the payer can edit an expense")
             }
+            try ensureMutableGroup(id: expenses[index].groupId)
+            try ensureMutableGroup(id: request.groupId)
             try validateExpenseRequest(request)
             let expense = makeExpense(id: expenseId, from: request)
             expenses[index] = expense
@@ -266,6 +310,7 @@ actor MockBillBanditAPI {
             guard expenses[index].paidById == currentUser.id else {
                 throw APIError.server("Only the payer can delete an expense")
             }
+            try ensureMutableGroup(id: expenses[index].groupId)
             expenses.remove(at: index)
             value = SuccessResponse(success: true)
 
@@ -328,6 +373,9 @@ actor MockBillBanditAPI {
             image: group.image,
             currency: group.currency,
             category: group.category,
+            status: group.status,
+            finalizedAt: group.finalizedAt,
+            finalizedById: group.finalizedById,
             memberCount: group.members.count,
             expenseCount: groupExpenses.count,
             members: group.members,
@@ -349,6 +397,9 @@ actor MockBillBanditAPI {
             image: group.image,
             currency: group.currency,
             category: group.category,
+            status: group.status,
+            finalizedAt: group.finalizedAt,
+            finalizedById: group.finalizedById,
             memberCount: group.members.count,
             expenseCount: expenses.filter { $0.groupId == group.id }.count,
             members: group.members,
@@ -417,12 +468,27 @@ actor MockBillBanditAPI {
         guard memberIDs.contains(currentUser.id) else {
             throw APIError.server("Forbidden")
         }
+        try ensureMutableGroup(group)
         guard memberIDs.contains(request.paidById) else {
             throw APIError.server("Payer is not a member of this group")
         }
         for split in request.splits where memberIDs.contains(split.userId) == false {
             throw APIError.server("User \(split.userId) is not a member of this group")
         }
+    }
+
+    private func ensureMutableGroup(_ group: GroupDTO) throws {
+        guard group.isFinalized == false else {
+            throw APIError.server("Final groups can't be changed")
+        }
+    }
+
+    private func ensureMutableGroup(id groupId: String?) throws {
+        guard let groupId else { return }
+        guard let group = groups.first(where: { $0.id == groupId }) else {
+            throw APIError.server("Group not found")
+        }
+        try ensureMutableGroup(group)
     }
 
     private func transactionParties(from request: CreateTransactionRequest) throws -> (sender: UserDTO, receiver: UserDTO) {
@@ -583,6 +649,15 @@ private extension UserDTO {
     }
 }
 
+private extension GroupDTO {
+    var isFinalized: Bool {
+        let normalizedStatus = status?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+        return normalizedStatus == "FINAL" || normalizedStatus == "FINALIZED" || finalizedAt != nil
+    }
+}
+
 private extension String {
     var normalizedMockUsername: String {
         trimmingCharacters(in: .whitespacesAndNewlines)
@@ -597,6 +672,9 @@ private struct MockFixtureGroup: Decodable {
     let description: String?
     let currency: String
     let category: String
+    let status: String?
+    let finalizedAt: String?
+    let finalizedById: String?
     let members: [MockFixtureMember]
 }
 

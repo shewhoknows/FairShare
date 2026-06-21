@@ -37,6 +37,9 @@ type AuthResponse = {
 type Group = {
   id: string
   name: string
+  status: 'ACTIVE' | 'FINALIZED'
+  finalizedAt: string | null
+  finalizedById: string | null
   members: Array<{ userId: string; user: { email: string | null } }>
   expenses?: Array<{ id: string; description: string }>
 }
@@ -101,6 +104,7 @@ async function main() {
   const friend = await register('Ledger Friend', friendEmail)
   const outsider = await register('Ledger Outsider', outsiderEmail)
   const headers = authHeaders(owner.token)
+  const friendHeaders = authHeaders(friend.token)
 
   const created = await requestJson<GroupResponse>('/api/mobile/groups', {
     method: 'POST',
@@ -113,6 +117,9 @@ async function main() {
     }),
   })
   assert.equal(created.group.members.length, 1)
+  assert.equal(created.group.status, 'ACTIVE')
+  assert.equal(created.group.finalizedAt, null)
+  assert.equal(created.group.finalizedById, null)
 
   const member = await requestJson<MemberResponse>(`/api/mobile/groups/${created.group.id}/members`, {
     method: 'POST',
@@ -243,6 +250,65 @@ async function main() {
   })
   assert.ok(expenses.expenses.some((expense) => expense.id === createdExpense.expense.id))
   assert.ok(expenses.expenses.every((expense) => expense.id !== temporaryExpense.expense.id))
+
+  const memberFinalize = await requestRaw(`/api/mobile/groups/${created.group.id}/finalize`, {
+    method: 'POST',
+    headers: friendHeaders,
+  })
+  assert.equal(memberFinalize.status, 403)
+
+  const finalized = await requestJson<GroupResponse>(`/api/mobile/groups/${created.group.id}/finalize`, {
+    method: 'POST',
+    headers,
+  })
+  assert.equal(finalized.group.status, 'FINALIZED')
+  assert.ok(finalized.group.finalizedAt)
+  assert.equal(finalized.group.finalizedById, owner.user.id)
+  assert.deepEqual(finalized.balances?.simplifiedDebts, [])
+
+  const finalizedAgain = await requestJson<GroupResponse>(`/api/mobile/groups/${created.group.id}/finalize`, {
+    method: 'POST',
+    headers,
+  })
+  assert.equal(finalizedAgain.group.status, 'FINALIZED')
+  assert.equal(finalizedAgain.group.finalizedAt, finalized.group.finalizedAt)
+  assert.equal(finalizedAgain.group.finalizedById, finalized.group.finalizedById)
+
+  const finalizedMemberAdd = await requestRaw(`/api/mobile/groups/${created.group.id}/members`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ email: outsiderEmail }),
+  })
+  assert.equal(finalizedMemberAdd.status, 409)
+
+  const finalizedExpenseCreate = await requestRaw('/api/mobile/expenses', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      ...expenseBody,
+      description: 'Finalized ledger snack',
+      amount: 40,
+      splits: [equalSplit(owner.user.id, 20), equalSplit(friend.user.id, 20)],
+    }),
+  })
+  assert.equal(finalizedExpenseCreate.status, 409)
+
+  const finalizedExpenseUpdate = await requestRaw(`/api/mobile/expenses/${createdExpense.expense.id}`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      ...expenseBody,
+      amount: 140,
+      splits: [equalSplit(owner.user.id, 70), equalSplit(friend.user.id, 70)],
+    }),
+  })
+  assert.equal(finalizedExpenseUpdate.status, 409)
+
+  const finalizedExpenseDelete = await requestRaw(`/api/mobile/expenses/${createdExpense.expense.id}`, {
+    method: 'DELETE',
+    headers,
+  })
+  assert.equal(finalizedExpenseDelete.status, 409)
 
   console.log('Mobile ledger API flow checks passed.')
 }

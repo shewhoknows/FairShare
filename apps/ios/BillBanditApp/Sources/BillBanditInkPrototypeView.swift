@@ -125,6 +125,23 @@ struct InkSettlement: Identifiable, Equatable, Hashable {
     var amount: Double
 }
 
+private struct RecordPaymentSheetState: Identifiable, Equatable {
+    let tripID: String
+    let settlement: InkSettlement
+
+    var id: String {
+        "\(tripID)-\(settlement.id)"
+    }
+}
+
+private struct SettlementSettingsSheetState: Identifiable, Equatable {
+    let tripID: String
+
+    var id: String {
+        "settlement-settings-\(tripID)"
+    }
+}
+
 struct InkTripDraft: Equatable {
     var title = "Goa, December"
     var location = "Goa, India"
@@ -532,6 +549,37 @@ final class InkTripStore: ObservableObject {
         return true
     }
 
+    @discardableResult
+    func markTripFinal(_ tripID: String) async -> Bool {
+        if let apiClient {
+            errorMessage = nil
+            BillBanditLog.ledger("event=ledger.group.finalize.start group=\(BillBanditLog.redactedID(tripID))")
+            do {
+                let response: GroupResponse = try await apiClient.post(
+                    "/api/mobile/groups/\(tripID)/finalize",
+                    body: EmptyBody()
+                )
+                let trip = inkTrip(from: response.group, balances: response.balances)
+                upsert(trip)
+                errorMessage = nil
+                BillBanditLog.ledger("event=ledger.group.finalize.result success=true group=\(BillBanditLog.redactedID(tripID))")
+                return true
+            } catch {
+                BillBanditLog.ledger(
+                    "event=ledger.group.finalize.result success=false group=\(BillBanditLog.redactedID(tripID)) error=\(BillBanditLog.sanitizedError(error))"
+                )
+                setError(error)
+                return false
+            }
+        }
+
+        guard let index = trips.firstIndex(where: { $0.id == tripID }) else { return false }
+        var trip = trips[index]
+        trip.status = .final
+        trips[index] = trip
+        return true
+    }
+
     func summary(for trip: InkTrip) -> InkLedgerSummary {
         var summary = Self.summary(for: trip, currentUserID: currentUserID)
         if let remoteBalances = trip.remoteBalances {
@@ -663,7 +711,7 @@ final class InkTripStore: ObservableObject {
             location: description.location,
             dates: description.dates,
             currency: group.currency,
-            status: .open,
+            status: group.inkStatus,
             friends: friends,
             expenses: expenses,
             remoteBalances: balances.map { groupBalances in
@@ -770,10 +818,11 @@ final class InkTripStore: ObservableObject {
             friends: goaFriends,
             expenses: [
                 InkExpense(title: "Beach shack lunch", amount: 1250, paidByID: you.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D2"),
-                InkExpense(title: "Scooter rentals", amount: 900, paidByID: meera.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D2"),
-                InkExpense(title: "Check-in groceries", amount: 2100, paidByID: arjun.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D1"),
-                InkExpense(title: "Villa advance", amount: 5600, paidByID: you.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D1"),
-                InkExpense(title: "Airport taxi", amount: 2550, paidByID: you.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D1")
+                InkExpense(title: "Scooter rentals", amount: 3900, paidByID: meera.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D2"),
+                InkExpense(title: "Check-in groceries", amount: 5200, paidByID: arjun.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D1"),
+                InkExpense(title: "Villa advance", amount: 2600, paidByID: you.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D1"),
+                InkExpense(title: "Airport taxi", amount: 2550, paidByID: you.id, splitWithIDs: Set(goaFriends.map(\.id)), day: "D1"),
+                InkExpense(title: "Scuba advance", amount: 22000, paidByID: meera.id, splitWithIDs: Set([you.id, meera.id]), day: "D3")
             ]
         )
 
@@ -818,7 +867,8 @@ struct BillBanditInkPrototypeView: View {
     @State private var tripDraft = InkTripDraft.fresh
     @State private var editingExpenseID: String?
     @State private var friendReturnScreen = InkScreen.newLedger
-    @State private var pendingSettlement: InkSettlement?
+    @State private var recordPaymentSheet: RecordPaymentSheetState?
+    @State private var settlementSettingsSheet: SettlementSettingsSheetState?
     @State private var didConfigureStore = false
     private let apiClient: APIClient?
     private let currentUser: UserDTO?
@@ -832,8 +882,14 @@ struct BillBanditInkPrototypeView: View {
         onWelcomeLogin: (() -> Void)? = nil,
         onWelcomeCreateAccount: (() -> Void)? = nil
     ) {
-        _screen = State(initialValue: initialScreen)
         let demoTrips = ProcessInfo.processInfo.arguments.contains("--ink-demo-data") ? InkTripStore.demoTrips() : []
+        let initialTrip = demoTrips.first
+        let initialSettlement = initialTrip.flatMap { InkTripStore.settlements(for: $0).first }
+        _screen = State(initialValue: initialScreen == .recordPayment ? .settle : initialScreen)
+        _selectedTripID = State(initialValue: initialScreen == .recordPayment ? initialTrip?.id : nil)
+        _recordPaymentSheet = State(initialValue: initialScreen == .recordPayment ? initialTrip.flatMap { trip in
+            initialSettlement.map { RecordPaymentSheetState(tripID: trip.id, settlement: $0) }
+        } : nil)
         _store = StateObject(wrappedValue: InkTripStore(trips: demoTrips))
         self.apiClient = apiClient
         self.currentUser = currentUser
@@ -863,6 +919,39 @@ struct BillBanditInkPrototypeView: View {
         .preferredColorScheme(.dark)
         .task {
             await configureStoreIfNeeded()
+        }
+        .sheet(item: $recordPaymentSheet) { sheet in
+            RecordPaymentInkModal(
+                trips: store.trips,
+                initialTripID: sheet.tripID,
+                initialSettlement: sheet.settlement,
+                currentUserID: store.currentUserID,
+                errorMessage: store.errorMessage
+            ) { trip, settlement in
+                let didRecord = await store.recordSettlement(settlement, in: trip.id)
+                if didRecord {
+                    selectedTripID = trip.id
+                    recordPaymentSheet = nil
+                    if let refreshedTrip = store.trip(id: trip.id), store.settlements(for: refreshedTrip).isEmpty {
+                        screen = .finalBill
+                    } else {
+                        screen = .settle
+                    }
+                }
+                return didRecord
+            }
+            .presentationDetents([.height(625), .large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
+        }
+        .sheet(item: $settlementSettingsSheet) { sheet in
+            SettlementSettingsInkSheet(
+                trip: store.trip(id: sheet.tripID),
+                isRemoteBacked: store.isRemoteBacked
+            )
+            .presentationDetents([.height(440)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
         }
     }
 
@@ -966,43 +1055,72 @@ struct BillBanditInkPrototypeView: View {
                         friendReturnScreen = .liveLedger
                         screen = .addFriend
                     },
+                    onMarkFinal: {
+                        let didMarkFinal = await store.markTripFinal(trip.id)
+                        if didMarkFinal {
+                            selectedTripID = trip.id
+                            screen = .finalBill
+                        }
+                        return didMarkFinal
+                    },
                     onTab: handleTab
                 )
             }
         case .settle:
             if let trip = store.trip(id: selectedTripID) ?? store.trips.first {
                 SettleInkScreen(
+                    trips: store.trips,
                     trip: trip,
                     settlements: store.settlements(for: trip),
+                    currentUserID: store.currentUserID,
+                    onSelectTrip: { selectedTrip in
+                        selectedTripID = selectedTrip.id
+                    },
                     onRecord: { settlement in
-                        pendingSettlement = settlement
-                        screen = .recordPayment
+                        selectedTripID = trip.id
+                        recordPaymentSheet = RecordPaymentSheetState(tripID: trip.id, settlement: settlement)
+                    },
+                    onRefresh: {
+                        Task {
+                            await store.reloadTrips()
+                        }
+                    },
+                    onSettings: {
+                        selectedTripID = trip.id
+                        settlementSettingsSheet = SettlementSettingsSheetState(tripID: trip.id)
                     },
                     onTab: handleTab
                 )
             }
         case .recordPayment:
             if let trip = store.trip(id: selectedTripID) ?? store.trips.first,
-               let settlement = pendingSettlement ?? store.settlements(for: trip).first {
-                RecordPaymentInkScreen(
+               let settlement = store.settlements(for: trip).first {
+                SettleInkScreen(
+                    trips: store.trips,
                     trip: trip,
-                    settlement: settlement,
+                    settlements: store.settlements(for: trip),
                     currentUserID: store.currentUserID,
-                    errorMessage: store.errorMessage,
-                    onClose: { screen = .settle },
-                    onStamp: {
-                        let didRecord = await store.recordSettlement(settlement, in: trip.id)
-                        if didRecord {
-                            pendingSettlement = nil
-                            if let refreshedTrip = store.trip(id: trip.id), store.settlements(for: refreshedTrip).isEmpty {
-                                screen = .finalBill
-                            } else {
-                                screen = .settle
-                            }
+                    onSelectTrip: { selectedTrip in
+                        selectedTripID = selectedTrip.id
+                    },
+                    onRecord: { selectedSettlement in
+                        recordPaymentSheet = RecordPaymentSheetState(tripID: trip.id, settlement: selectedSettlement)
+                    },
+                    onRefresh: {
+                        Task {
+                            await store.reloadTrips()
                         }
-                        return didRecord
-                    }
+                    },
+                    onSettings: {
+                        selectedTripID = trip.id
+                        settlementSettingsSheet = SettlementSettingsSheetState(tripID: trip.id)
+                    },
+                    onTab: handleTab
                 )
+                .onAppear {
+                    screen = .settle
+                    recordPaymentSheet = RecordPaymentSheetState(tripID: trip.id, settlement: settlement)
+                }
             }
         case .finalBill:
             if let trip = store.trip(id: selectedTripID) ?? store.trips.first {
@@ -1010,6 +1128,7 @@ struct BillBanditInkPrototypeView: View {
                     trip: trip,
                     summary: store.summary(for: trip),
                     onBack: { screen = .settle },
+                    onSeeAll: { screen = .liveLedger },
                     onTab: handleTab
                 )
             }
@@ -1129,6 +1248,15 @@ private extension Array where Element == String {
     }
 }
 
+private extension GroupDTO {
+    var inkStatus: InkTrip.Status {
+        if status?.uppercased() == "FINAL" || finalizedAt != nil {
+            return .final
+        }
+        return .open
+    }
+}
+
 enum FriendChipLabeler {
     static func label(for name: String, in candidates: [String]) -> String {
         let firstName = name.firstNameForChip
@@ -1181,6 +1309,13 @@ private enum Ink {
     }
 }
 
+private struct InkTopBarMenuAction: Identifiable {
+    let id: String
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+}
+
 private struct InkAppShell<Content: View>: View {
     typealias BottomOverlay = AnyView
 
@@ -1189,6 +1324,7 @@ private struct InkAppShell<Content: View>: View {
     var rightIcon: String?
     var onLeft: (() -> Void)?
     var onRight: (() -> Void)?
+    var rightMenuActions: [InkTopBarMenuAction] = []
     var activeTab: InkBottomTab?
     var onTab: ((InkBottomTab) -> Void)?
     var visibleTabs: [InkBottomTab] = InkBottomTab.allCases
@@ -1214,6 +1350,7 @@ private struct InkAppShell<Content: View>: View {
                     rightIcon: rightIcon,
                     onLeft: onLeft,
                     onRight: onRight,
+                    rightMenuActions: rightMenuActions,
                     inlineTitleIcon: inlineTitleIcon
                 )
                 .padding(.horizontal, 20)
@@ -1274,6 +1411,7 @@ private struct InkTopBar: View {
     var rightIcon: String?
     var onLeft: (() -> Void)?
     var onRight: (() -> Void)?
+    var rightMenuActions: [InkTopBarMenuAction] = []
     var inlineTitleIcon = false
 
     var body: some View {
@@ -1290,13 +1428,7 @@ private struct InkTopBar: View {
                     HStack {
                         Spacer()
                         if let rightIcon {
-                            Button(action: { onRight?() }) {
-                                Image(systemName: rightIcon)
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .frame(width: 28, height: 28)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("top.right")
+                            rightControl(icon: rightIcon, size: 17, frame: 28)
                         }
                     }
                 }
@@ -1319,13 +1451,7 @@ private struct InkTopBar: View {
                         Spacer()
 
                         if let rightIcon {
-                            Button(action: { onRight?() }) {
-                                Image(systemName: rightIcon)
-                                    .font(.system(size: 21, weight: .semibold))
-                                    .frame(width: 36, height: 36)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("top.right")
+                            rightControl(icon: rightIcon, size: 21, frame: 36)
                         } else {
                             Color.clear.frame(width: 36, height: 36)
                         }
@@ -1340,6 +1466,36 @@ private struct InkTopBar: View {
             }
         }
         .foregroundStyle(Ink.Blue.cream)
+    }
+
+    private func rightControl(icon: String, size: CGFloat, frame: CGFloat) -> some View {
+        Group {
+            if rightMenuActions.isEmpty {
+                Button(action: { onRight?() }) {
+                    topBarIcon(icon: icon, size: size, frame: frame)
+                }
+            } else {
+                Menu {
+                    ForEach(rightMenuActions) { action in
+                        Button {
+                            action.action()
+                        } label: {
+                            Label(action.title, systemImage: action.systemImage)
+                        }
+                    }
+                } label: {
+                    topBarIcon(icon: icon, size: size, frame: frame)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("top.right")
+    }
+
+    private func topBarIcon(icon: String, size: CGFloat, frame: CGFloat) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: size, weight: .semibold))
+            .frame(width: frame, height: frame)
     }
 }
 
@@ -1374,21 +1530,26 @@ private struct InkBottomTabs: View {
     let onSelect: (InkBottomTab) -> Void
 
     var body: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 0) {
             ForEach(tabs, id: \.self) { tab in
                 Button { onSelect(tab) } label: {
                     VStack(spacing: 6) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 18, weight: .medium))
-                            .frame(height: 20)
+                            .font(.system(size: 18, weight: .semibold))
+                            .symbolVariant(.none)
+                            .imageScale(.medium)
+                            .frame(width: 24, height: 22)
                         Text(tab.title)
                             .font(Ink.mono(9, weight: .heavy))
-                            .tracking(1.4)
+                            .tracking(0.8)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .frame(width: 48, height: 12, alignment: .center)
                         Circle()
                             .fill(tab == active ? Ink.Blue.cream : .clear)
                             .frame(width: 5, height: 5)
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50)
                     .foregroundStyle(tab == active ? Ink.Blue.cream : Ink.Blue.cream.opacity(0.70))
                 }
                 .buttonStyle(.plain)
@@ -1820,6 +1981,7 @@ private struct FlowLayout<Content: View>: View {
 private struct AvatarStack: View {
     var size: CGFloat = 22
     var names: [String] = ["Y", "M", "A", "K", "N"]
+    var onTap: ((String) -> Void)?
     private let colors: [Color] = [
         Ink.Blue.cobalt,
         Color(red: 0.96, green: 0.55, blue: 0.28),
@@ -1829,21 +1991,49 @@ private struct AvatarStack: View {
     ]
 
     var body: some View {
-        HStack(spacing: -6) {
-            ForEach(Array(names.prefix(colors.count).enumerated()), id: \.offset) { index, name in
-                Circle()
-                    .fill(colors[index])
-                    .frame(width: size, height: size)
-                    .overlay {
-                        Text(name)
-                            .font(Ink.mono(size * 0.40, weight: .heavy))
-                            .foregroundStyle(Ink.Blue.cream)
+        HStack(spacing: -4) {
+            ForEach(Array(names.enumerated()), id: \.offset) { index, name in
+                let color = colors[index % colors.count]
+                if let onTap {
+                    Button {
+                        onTap(name)
+                    } label: {
+                        avatar(name: name, color: color)
                     }
-                    .overlay(Circle().stroke(Ink.Blue.cream, lineWidth: 1.2))
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(name) profile")
+                } else {
+                    avatar(name: name, color: color)
+                }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(names.count) friends")
+    }
+
+    private func avatar(name: String, color: Color) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: size, height: size)
+            .overlay {
+                Text(monogram(for: name))
+                    .font(Ink.mono(size * 0.34, weight: .heavy))
+                    .foregroundStyle(Ink.Blue.cream)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .overlay(Circle().stroke(Ink.Blue.cream, lineWidth: 1.2))
+    }
+
+    private func monogram(for name: String) -> String {
+        let words = name
+            .split(whereSeparator: { $0.isWhitespace || $0 == "-" })
+            .map(String.init)
+        let letters = words.prefix(2).compactMap(\.first)
+        if letters.isEmpty {
+            return String(name.prefix(1)).uppercased()
+        }
+        return String(letters).uppercased()
     }
 }
 
@@ -2662,30 +2852,31 @@ private struct LiveLedgerInkScreen: View {
     let onEditTrip: () -> Void
     let onEditExpense: (InkExpense) -> Void
     let onAddFriend: () -> Void
+    let onMarkFinal: () async -> Bool
     let onTab: (InkBottomTab) -> Void
+    @State private var isMarkingFinal = false
+    @State private var localErrorMessage: String?
 
     var body: some View {
         InkAppShell(
-            title: shortTitle(trip.location),
+            title: trip.title,
             leftIcon: "chevron.left",
             rightIcon: isRemoteBacked ? "person.badge.plus" : "square.and.pencil",
             onLeft: onBack,
             onRight: isRemoteBacked ? onAddFriend : onEditTrip,
             activeTab: .ledger,
-            onTab: onTab
+            onTab: onTab,
+            topBarTopSpacing: 26
         ) {
             InkReceipt {
                 VStack(alignment: .leading, spacing: 13) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(trip.location.uppercased())
+                            Text(trip.title.uppercased())
                                 .font(Ink.serif(31))
                                 .foregroundStyle(Ink.Blue.ink)
                                 .accessibilityIdentifier("ledger.title")
-                            Text("TRIP LEDGER · LIVE")
-                                .font(Ink.mono(12, weight: .bold))
-                                .tracking(2.2)
-                                .foregroundStyle(Ink.Blue.ink.opacity(0.75))
+                            LedgerStatusBadge(status: trip.status)
                         }
                         Spacer()
                         MascotStamp(size: 54)
@@ -2700,12 +2891,12 @@ private struct LiveLedgerInkScreen: View {
                             .foregroundStyle(Ink.Blue.ink)
                         AvatarStack(size: 20, names: trip.friends.map(\.name))
                     }
-                    ReceiptLabel(text: "Kachcha bill")
+                    ReceiptLabel(text: trip.status == .open ? "Kacha bill" : "Pakka bill")
                     DashedRule()
-                    ReceiptLabel(text: "Entries — \(trip.expenses.count) · Last 3 shown")
+                    ReceiptLabel(text: "Entries — \(trip.expenses.count)")
 
                     if trip.expenses.isEmpty {
-                        Text("No expenses yet.\nAdd friends and jot the first kachcha line.")
+                        Text("No expenses yet.\nAdd friends and jot the first kacha line.")
                             .font(Ink.mono(12, weight: .medium))
                             .foregroundStyle(Ink.Blue.inkSoft)
                             .frame(maxWidth: .infinity)
@@ -2713,7 +2904,7 @@ private struct LiveLedgerInkScreen: View {
                             .padding(.vertical, 18)
                             .accessibilityIdentifier("ledger.empty")
                     } else {
-                        ForEach(trip.expenses.suffix(3)) { expense in
+                        ForEach(trip.expenses) { expense in
                             Button {
                                 onEditExpense(expense)
                             } label: {
@@ -2737,9 +2928,54 @@ private struct LiveLedgerInkScreen: View {
                 }
             }
 
-            PrimaryCreamButton(title: "+ Add entry", action: onAdd)
-                .accessibilityIdentifier("ledger.addEntry")
+            if let localErrorMessage {
+                InkInlineError(message: localErrorMessage)
+            }
+
+            if trip.status == .open {
+                PrimaryCreamButton(title: "+ Add entry", action: onAdd)
+                    .accessibilityIdentifier("ledger.addEntry")
+
+                PrimaryCreamButton(title: "Mark ledger final", isLoading: isMarkingFinal) {
+                    markFinal()
+                }
+                .accessibilityIdentifier("ledger.markFinal")
+            }
         }
+    }
+
+    private func markFinal() {
+        guard isMarkingFinal == false else { return }
+        isMarkingFinal = true
+        localErrorMessage = nil
+        Task {
+            let didMarkFinal = await onMarkFinal()
+            isMarkingFinal = false
+            if didMarkFinal == false {
+                localErrorMessage = "Couldn’t mark this ledger final. Try again."
+            }
+        }
+    }
+}
+
+private struct LedgerStatusBadge: View {
+    let status: InkTrip.Status
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if status == .open {
+                Circle()
+                    .fill(Color(red: 0.86, green: 0.09, blue: 0.10))
+                    .frame(width: 7, height: 7)
+                Text("LIVE")
+            } else {
+                Text("FINAL")
+            }
+        }
+        .font(Ink.mono(12, weight: .bold))
+        .tracking(2.2)
+        .foregroundStyle(Ink.Blue.ink.opacity(0.75))
+        .accessibilityIdentifier("ledger.status")
     }
 }
 
@@ -2796,28 +3032,51 @@ private struct SummaryLine: View {
 }
 
 private struct SettleInkScreen: View {
+    let trips: [InkTrip]
     let trip: InkTrip
     let settlements: [InkSettlement]
+    let currentUserID: String
+    let onSelectTrip: (InkTrip) -> Void
     let onRecord: (InkSettlement) -> Void
+    let onRefresh: () -> Void
+    let onSettings: () -> Void
     let onTab: (InkBottomTab) -> Void
 
+    private var visibleSettlements: [InkSettlement] {
+        settlements.filter { settlement in
+            settlement.fromID == currentUserID || settlement.toID == currentUserID
+        }
+    }
+
     var body: some View {
-        InkAppShell(title: "Settle", rightIcon: "ellipsis", activeTab: .settle, onTab: onTab) {
-            HStack {
-                Spacer()
-                MascotStamp(size: 52)
-            }
-            .padding(.bottom, -12)
+        InkAppShell(
+            title: "Settle",
+            rightIcon: "ellipsis",
+            rightMenuActions: [
+                InkTopBarMenuAction(id: "refresh-settlements", title: "Refresh settlements", systemImage: "arrow.clockwise", action: onRefresh),
+                InkTopBarMenuAction(id: "settlement-settings", title: "Settlement settings", systemImage: "slider.horizontal.3", action: onSettings)
+            ],
+            activeTab: .settle,
+            onTab: onTab,
+            contentSpacing: 14,
+            inlineTitleIcon: true,
+            topBarTopSpacing: 26
+        ) {
+            MascotStamp(size: 84)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 2)
+                .padding(.bottom, -4)
 
             VStack(spacing: 4) {
-                SerifTitle(text: "The shortest way", size: 30)
-                Text("to square up.")
-                    .font(Ink.serif(31).italic())
+                Text("The shortest way to square up")
+                    .font(Ink.serif(27))
                     .foregroundStyle(Ink.Blue.cream)
-                Text("\(settlements.count) payments instead of \(max(settlements.count, trip.friends.count * 2 - 1)).")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text("\(visibleSettlements.count) payments instead of \(max(visibleSettlements.count, trip.friends.count * 2 - 1))")
                     .font(.system(size: 15, design: .rounded))
                     .foregroundStyle(Ink.Blue.peri)
-                    .padding(.top, 4)
+                    .padding(.top, 2)
             }
             .frame(maxWidth: .infinity)
 
@@ -2825,22 +3084,21 @@ private struct SettleInkScreen: View {
                 VStack(spacing: 14) {
                     ReceiptLabel(text: "Settlement Slip")
                         .frame(maxWidth: .infinity)
-                    ReceiptLabel(text: "\(trip.title) · Who pays whom")
-                        .frame(maxWidth: .infinity)
+                    SettlementLedgerSelector(trips: trips, selectedTrip: trip, onSelect: onSelectTrip)
                     DashedRule()
-                    if settlements.isEmpty {
+                    if visibleSettlements.isEmpty {
                         Text("All square. Nothing left to settle.")
                             .font(Ink.mono(12, weight: .medium))
                             .foregroundStyle(Ink.Blue.ink)
                             .padding(.vertical, 18)
                     } else {
-                        ForEach(Array(settlements.enumerated()), id: \.element.id) { index, settlement in
+                        ForEach(Array(visibleSettlements.enumerated()), id: \.element.id) { index, settlement in
                             Button {
                                 onRecord(settlement)
                             } label: {
                                 SettlementRow(
-                                    from: friendName(settlement.fromID, in: trip),
-                                    to: friendName(settlement.toID, in: trip),
+                                    from: displayName(settlement.fromID),
+                                    to: displayName(settlement.toID),
                                     amount: rupees(settlement.amount),
                                     highlighted: index == 0
                                 )
@@ -2848,14 +3106,47 @@ private struct SettleInkScreen: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    Text("Tap a line to record it.\nWhen all three clear,\nthe trip stamps itself FINAL.")
-                        .font(Ink.mono(11, weight: .medium))
-                        .foregroundStyle(Ink.Blue.ink)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
                 }
             }
         }
+    }
+
+    private func displayName(_ id: String) -> String {
+        id == currentUserID ? "You" : friendName(id, in: trip)
+    }
+}
+
+private struct SettlementLedgerSelector: View {
+    let trips: [InkTrip]
+    let selectedTrip: InkTrip
+    let onSelect: (InkTrip) -> Void
+
+    var body: some View {
+        Menu {
+            ForEach(trips) { trip in
+                Button(trip.title) {
+                    onSelect(trip)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(selectedTrip.title.uppercased())
+                    .font(Ink.mono(10, weight: .heavy))
+                    .tracking(2.0)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.58)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .heavy))
+            }
+            .foregroundStyle(Ink.Blue.ink)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Ink.Blue.cream.opacity(0.45), in: Capsule())
+            .overlay(Capsule().stroke(Ink.Blue.ink.opacity(0.85), lineWidth: 1))
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("settle.ledgerMenu")
     }
 }
 
@@ -2866,15 +3157,18 @@ private struct SettlementRow: View {
     var highlighted = false
 
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             Text(from)
+                .lineLimit(1)
             Text("→")
             Text(to)
+                .lineLimit(1)
             Spacer()
             ScriptText(text: amount, size: 22)
         }
         .font(Ink.mono(15, weight: .heavy))
         .foregroundStyle(Ink.Blue.ink)
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 14)
         .padding(.vertical, 13)
         .background(highlighted ? Ink.Blue.cobalt.opacity(0.06) : Color.clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
@@ -2885,63 +3179,446 @@ private struct SettlementRow: View {
     }
 }
 
-private struct RecordPaymentInkScreen: View {
-    @State private var isSaving = false
+private struct SettlementSettingsInkSheet: View {
+    let trip: InkTrip?
+    let isRemoteBacked: Bool
 
-    let trip: InkTrip
-    let settlement: InkSettlement
-    let currentUserID: String
-    let errorMessage: String?
-    let onClose: () -> Void
-    let onStamp: () async -> Bool
-
-    private var fromName: String {
-        settlement.fromID == currentUserID ? "You" : friendName(settlement.fromID, in: trip)
+    private var ledgerTitle: String {
+        trip?.title ?? "Current ledger"
     }
 
-    private var toName: String {
-        settlement.toID == currentUserID ? "you" : friendName(settlement.toID, in: trip)
+    private var memberCount: Int {
+        trip?.friends.count ?? 0
     }
 
     var body: some View {
-        InkAppShell(title: "Record Payment", leftIcon: "xmark", onLeft: onClose) {
-            InkReceipt {
-                VStack(alignment: .leading, spacing: 16) {
-                    ReceiptLabel(text: "No. 0012 · Receipt of Payment")
-                        .frame(maxWidth: .infinity)
-                    Text("\(fromName) pays \(toName)".uppercased())
-                        .font(Ink.serif(28, weight: .regular))
-                        .foregroundStyle(Ink.Blue.ink)
-                        .frame(maxWidth: .infinity)
-                    ScriptText(text: rupees(settlement.amount), size: 42)
-                        .frame(maxWidth: .infinity)
-                    DashedRule()
-                    ReceiptField(label: "For", value: trip.title)
-                    ReceiptLabel(text: "Paid via")
-                    ChipLine(items: ["UPI", "Cash"], selected: "UPI")
-                    DashedRule()
-                    Text("Records this settlement on the shared ledger.")
-                        .font(Ink.mono(11, weight: .medium))
-                        .foregroundStyle(Ink.Blue.ink)
-                    if let errorMessage {
-                        InkInlineError(message: errorMessage)
+        ZStack {
+            Ink.Blue.blue.ignoresSafeArea()
+            VStack(spacing: 16) {
+                Text("SETTLEMENT SETTINGS")
+                    .font(Ink.mono(15, weight: .bold))
+                    .tracking(3.0)
+                    .foregroundStyle(Ink.Blue.cream)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .padding(.top, 18)
+
+                InkReceipt(topScallop: true, bottomScallop: true, padding: 18) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ReceiptLabel(text: ledgerTitle)
+                        DashedRule()
+                        SettlementSettingRow(label: "Simplify debts", value: "On")
+                        SettlementSettingRow(label: "Currency", value: trip?.currency ?? "INR")
+                        SettlementSettingRow(label: "Members", value: "\(memberCount)")
+                        SettlementSettingRow(label: "Data source", value: isRemoteBacked ? "Mobile API" : "Demo")
+                        DashedRule()
+                        Text("These settings reflect the current release behavior")
+                            .font(Ink.mono(11, weight: .medium))
+                            .foregroundStyle(Ink.Blue.inkSoft)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .preferredColorScheme(.dark)
+    }
+}
 
-            InkBlackButton(title: isSaving ? "Recording" : "Mark as paid") {
-                guard isSaving == false else { return }
-                isSaving = true
-                Task {
-                    _ = await onStamp()
-                    isSaving = false
+private struct SettlementSettingRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(Ink.mono(12, weight: .medium))
+            Spacer()
+            Text(value)
+                .font(Ink.mono(12, weight: .heavy))
+        }
+        .foregroundStyle(Ink.Blue.ink)
+    }
+}
+
+private enum RecordPaymentDirection: String, CaseIterable {
+    case receiving
+    case paying
+
+    var title: String {
+        switch self {
+        case .receiving:
+            "They pay you"
+        case .paying:
+            "You pay them"
+        }
+    }
+}
+
+private struct RecordPaymentInkModal: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var isSaving = false
+    @State private var selectedTripID: String
+    @State private var direction: RecordPaymentDirection
+    @State private var counterpartyID: String
+    @State private var amountText: String
+    @State private var paymentMethod = "UPI"
+
+    let trips: [InkTrip]
+    let initialSettlement: InkSettlement
+    let currentUserID: String
+    let errorMessage: String?
+    let onRecord: (InkTrip, InkSettlement) async -> Bool
+
+    init(
+        trips: [InkTrip],
+        initialTripID: String,
+        initialSettlement: InkSettlement,
+        currentUserID: String,
+        errorMessage: String?,
+        onRecord: @escaping (InkTrip, InkSettlement) async -> Bool
+    ) {
+        self.trips = trips
+        self.initialSettlement = initialSettlement
+        self.currentUserID = currentUserID
+        self.errorMessage = errorMessage
+        self.onRecord = onRecord
+
+        let initialDirection: RecordPaymentDirection = initialSettlement.fromID == currentUserID ? .paying : .receiving
+        let initialCounterpartyID = initialDirection == .receiving ? initialSettlement.fromID : initialSettlement.toID
+        _selectedTripID = State(initialValue: initialTripID)
+        _direction = State(initialValue: initialDirection)
+        _counterpartyID = State(initialValue: initialCounterpartyID)
+        _amountText = State(initialValue: String(format: "%.0f", initialSettlement.amount))
+    }
+
+    private var selectedTrip: InkTrip? {
+        trips.first { $0.id == selectedTripID } ?? trips.first
+    }
+
+    private var selectedTripSettlements: [InkSettlement] {
+        guard let selectedTrip else { return [] }
+        return selectedTrip.remoteSettlements ?? InkTripStore.settlements(for: selectedTrip)
+    }
+
+    private var currentMemberID: String? {
+        guard let selectedTrip else { return nil }
+        return selectedTrip.friends.first { $0.id == currentUserID }?.id ?? selectedTrip.friends.first?.id
+    }
+
+    private var counterparties: [InkFriend] {
+        guard let selectedTrip, let currentMemberID else { return [] }
+        return selectedTrip.friends.filter { $0.id != currentMemberID }
+    }
+
+    private var selectedCounterpartyName: String {
+        guard let selectedTrip else { return "Friend" }
+        return friendName(counterpartyID, in: selectedTrip)
+    }
+
+    private var fromName: String {
+        guard let selectedTrip, let currentMemberID else { return "Someone" }
+        let fromID = direction == .receiving ? counterpartyID : currentMemberID
+        return fromID == currentMemberID ? "You" : friendName(fromID, in: selectedTrip)
+    }
+
+    private var toName: String {
+        guard let selectedTrip, let currentMemberID else { return "you" }
+        let toID = direction == .receiving ? currentMemberID : counterpartyID
+        return toID == currentMemberID ? "you" : friendName(toID, in: selectedTrip)
+    }
+
+    private var formattedReceiptNumber: String {
+        guard let selectedTrip else { return "0001" }
+        let draft = draftSettlement(in: selectedTrip)
+        let receiptNumber = selectedTripSettlements.firstIndex { settlement in
+            settlement.id == initialSettlement.id ||
+                (settlement.fromID == draft.fromID && settlement.toID == draft.toID)
+        }.map { $0 + 1 } ?? max(1, selectedTripSettlements.count + 1)
+        return String(format: "%04d", receiptNumber)
+    }
+
+    var body: some View {
+        ZStack {
+            Ink.Blue.blue.ignoresSafeArea()
+            VStack(spacing: 10) {
+                Text("RECORD PAYMENT")
+                    .font(Ink.mono(15, weight: .bold))
+                    .tracking(3.0)
+                    .foregroundStyle(Ink.Blue.cream)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .padding(.top, 18)
+                    .padding(.bottom, 2)
+
+                if let selectedTrip {
+                    InkReceipt(topScallop: true, bottomScallop: true, padding: 16) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            ReceiptLabel(text: "No. \(formattedReceiptNumber) · Receipt of Payment")
+                                .frame(maxWidth: .infinity)
+                            settlementTitle
+                            ReceiptTextField(
+                                label: "Amount",
+                                value: $amountText,
+                                keyboardType: .decimalPad,
+                                autocapitalization: .never,
+                                submitLabel: .done,
+                                identifier: "recordPayment.amount"
+                            )
+                            ReceiptLabel(text: "Ledger")
+                            ledgerMenu(selectedTrip: selectedTrip)
+                            ReceiptLabel(text: "Direction")
+                            directionControl
+                            ReceiptLabel(text: direction == .receiving ? "\(selectedCounterpartyName) pays you" : "You pay \(selectedCounterpartyName)")
+                            DashedRule()
+                            ReceiptLabel(text: "Paid via")
+                            RecordPaymentChipRow(
+                                items: [("UPI", "UPI"), ("Cash", "Cash")],
+                                selectedID: paymentMethod,
+                                onSelect: { paymentMethod = $0 }
+                            )
+                            DashedRule()
+                            Text("Records this settlement on the shared ledger")
+                                .font(Ink.mono(11, weight: .medium))
+                                .foregroundStyle(Ink.Blue.ink)
+                            if let localErrorMessage {
+                                InkInlineError(message: localErrorMessage)
+                            } else if let errorMessage {
+                                InkInlineError(message: errorMessage)
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 6)
+
+                    InkBlackButton(title: isSaving ? "Recording" : "Mark as paid") {
+                        guard isSaving == false else { return }
+                        Task {
+                            await save(selectedTrip)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.bottom, 12)
                 }
             }
-            Button("Not yet", action: onClose)
-                .font(Ink.serif(18, weight: .semibold))
-                .foregroundStyle(Ink.Blue.cream)
-                .buttonStyle(.plain)
-                .padding(.top, 4)
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .preferredColorScheme(.dark)
+        .onAppear {
+            if counterparties.contains(where: { $0.id == counterpartyID }) == false {
+                applyDefaultCounterparty()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var settlementTitle: some View {
+        HStack(spacing: 7) {
+            if direction == .receiving {
+                counterpartyMenu
+                Text("PAYS YOU")
+            } else {
+                Text("YOU PAY")
+                counterpartyMenu
+            }
+        }
+        .font(Ink.serif(25, weight: .regular))
+        .foregroundStyle(Ink.Blue.ink)
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var counterpartyMenu: some View {
+        Menu {
+            ForEach(counterparties) { friend in
+                Button(friend.name) {
+                    counterpartyID = friend.id
+                    applyMatchingAmount()
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(selectedCounterpartyName.uppercased())
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .heavy))
+            }
+            .foregroundStyle(Ink.Blue.ink)
+            .underline()
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("recordPayment.counterpartyMenu")
+    }
+
+    private func ledgerMenu(selectedTrip: InkTrip) -> some View {
+        Menu {
+            ForEach(trips) { trip in
+                Button(trip.title) {
+                    selectedTripID = trip.id
+                    applyDefaultSettlement(for: trip.id)
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(selectedTrip.title)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .heavy))
+            }
+            .font(Ink.mono(12, weight: .bold))
+            .foregroundStyle(Ink.Blue.cream)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 9)
+            .background(Ink.Blue.ink, in: Capsule())
+            .overlay(Capsule().stroke(Ink.Blue.ink.opacity(0.8), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("recordPayment.ledgerMenu")
+    }
+
+    private var directionControl: some View {
+        HStack(spacing: 10) {
+            RecordPaymentPartyPill(title: direction == .receiving ? selectedCounterpartyName : "You")
+            Button {
+                toggleDirection()
+            } label: {
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(Ink.Blue.cream)
+                    .frame(width: 36, height: 36)
+                    .background(Ink.Blue.ink, in: Circle())
+                    .overlay(Circle().stroke(Ink.Blue.cobalt.opacity(0.55), lineWidth: 1.2))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("recordPayment.flipDirection")
+            RecordPaymentPartyPill(title: direction == .receiving ? "You" : selectedCounterpartyName)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @State private var localErrorMessage: String?
+
+    private func draftSettlement(in trip: InkTrip) -> InkSettlement {
+        let amount = Double(amountText.filter { "0123456789.".contains($0) }) ?? initialSettlement.amount
+        let currentID = currentMemberID ?? trip.friends.first?.id ?? currentUserID
+        let otherID = counterpartyID.isEmpty ? (counterparties.first?.id ?? currentID) : counterpartyID
+        return InkSettlement(
+            fromID: direction == .receiving ? otherID : currentID,
+            toID: direction == .receiving ? currentID : otherID,
+            amount: max(0, amount)
+        )
+    }
+
+    private func applyDefaultSettlement(for tripID: String) {
+        guard let trip = trips.first(where: { $0.id == tripID }) else { return }
+        let settlement = (trip.remoteSettlements ?? InkTripStore.settlements(for: trip)).first
+        if let settlement {
+            direction = settlement.fromID == currentUserID ? .paying : .receiving
+            counterpartyID = direction == .receiving ? settlement.fromID : settlement.toID
+            amountText = String(format: "%.0f", settlement.amount)
+        } else {
+            applyDefaultCounterparty()
+            amountText = "0"
+        }
+    }
+
+    private func applyDefaultCounterparty() {
+        if let matching = matchingSettlement() {
+            counterpartyID = direction == .receiving ? matching.fromID : matching.toID
+            amountText = String(format: "%.0f", matching.amount)
+        } else if let first = counterparties.first {
+            counterpartyID = first.id
+        }
+    }
+
+    private func applyMatchingAmount() {
+        if let matching = matchingSettlement() {
+            amountText = String(format: "%.0f", matching.amount)
+        }
+    }
+
+    private func toggleDirection() {
+        direction = direction == .receiving ? .paying : .receiving
+        applyMatchingAmount()
+    }
+
+    private func matchingSettlement() -> InkSettlement? {
+        guard let currentMemberID else { return nil }
+        return selectedTripSettlements.first { settlement in
+            switch direction {
+            case .receiving:
+                settlement.toID == currentMemberID && settlement.fromID == counterpartyID
+            case .paying:
+                settlement.fromID == currentMemberID && settlement.toID == counterpartyID
+            }
+        }
+    }
+
+    private func save(_ trip: InkTrip) async {
+        localErrorMessage = nil
+        let settlement = draftSettlement(in: trip)
+        guard settlement.amount > 0 else {
+            localErrorMessage = "Enter an amount before marking paid."
+            return
+        }
+        isSaving = true
+        let didRecord = await onRecord(trip, settlement)
+        isSaving = false
+        if didRecord {
+            dismiss()
+        }
+    }
+}
+
+private struct RecordPaymentPartyPill: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(Ink.mono(12, weight: .heavy))
+            .foregroundStyle(Ink.Blue.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .background(Ink.Blue.cream.opacity(0.45), in: Capsule())
+            .overlay(Capsule().stroke(Ink.Blue.ink.opacity(0.78), lineWidth: 1))
+    }
+}
+
+private struct RecordPaymentChipRow: View {
+    let items: [(id: String, title: String)]
+    let selectedID: String
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(items, id: \.id) { item in
+                    let isSelected = item.id == selectedID
+                    Button {
+                        onSelect(item.id)
+                    } label: {
+                        Text(item.title)
+                            .font(Ink.mono(12, weight: .bold))
+                            .foregroundStyle(isSelected ? Ink.Blue.cream : Ink.Blue.ink)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 8)
+                            .background(isSelected ? Ink.Blue.ink : Color.clear, in: Capsule())
+                            .overlay(Capsule().stroke(Ink.Blue.ink.opacity(0.8), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityValue(isSelected ? "selected" : "not selected")
+                }
+            }
+            .padding(.vertical, 1)
         }
     }
 }
@@ -2950,7 +3627,13 @@ private struct FinalBillInkScreen: View {
     let trip: InkTrip
     let summary: InkLedgerSummary
     let onBack: () -> Void
+    let onSeeAll: () -> Void
     let onTab: (InkBottomTab) -> Void
+    @State private var selectedFriend: InkFriend?
+
+    private var recentEntries: ArraySlice<InkExpense> {
+        trip.expenses.suffix(3)
+    }
 
     var body: some View {
         InkAppShell(title: "Pakka Bill", leftIcon: "chevron.left", onLeft: onBack, activeTab: .ledger, onTab: onTab, contentSpacing: 12) {
@@ -2968,26 +3651,79 @@ private struct FinalBillInkScreen: View {
                         Text("·")
                             .font(Ink.mono(9, weight: .bold))
                             .foregroundStyle(Ink.Blue.ink)
-                        AvatarStack(size: 20, names: trip.friends.map(\.name))
+                        AvatarStack(size: 20, names: trip.friends.map(\.name)) { name in
+                            selectedFriend = trip.friends.first { $0.name == name }
+                        }
                     }
-                    ReceiptLabel(text: "Booked & balanced by BillBandit")
+                    ReceiptLabel(text: "Balanced by the Bill Bandit")
                     DashedRule()
-                    ReceiptLabel(text: "Entries — \(trip.expenses.count) · Last 4 shown")
-                    ForEach(trip.expenses.suffix(4)) { expense in
+                    HStack(alignment: .firstTextBaseline) {
+                        ReceiptLabel(text: "Entries — \(trip.expenses.count)")
+                        Spacer(minLength: 12)
+                        Button(action: onSeeAll) {
+                            ReceiptLabel(text: "See all")
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("finalBill.seeAll")
+                    }
+                    ForEach(recentEntries) { expense in
                         FormalEntry(title: expense.title, amount: rupees(expense.amount))
                     }
                     SolidRule()
                     SummaryLine(label: "Total", amount: rupees(summary.total), script: false)
-                    SummaryLine(label: "your share", amount: rupees(summary.userShare), script: false)
-                    SummaryLine(label: summary.userNet >= 0 ? "To collect" : "To pay", amount: rupees(abs(summary.userNet)), strong: true, script: false)
-                    HStack {
-                        FinalStampAsset(width: 112)
-                        Spacer()
-                        BarcodeStrip().frame(width: 128, height: 34)
+                    ZStack(alignment: .leading) {
+                        FinalStampAsset(width: 108)
+                            .rotationEffect(.degrees(-2))
+                            .opacity(0.58)
+                            .offset(x: 70, y: 12)
+                        VStack(alignment: .leading, spacing: 9) {
+                            SummaryLine(label: "your share", amount: rupees(summary.userShare), script: false)
+                            SummaryLine(label: summary.userNet >= 0 ? "To collect" : "To pay", amount: rupees(abs(summary.userNet)), strong: true, script: false)
+                        }
+                    }
+                    VStack(alignment: .center, spacing: 4) {
+                        Barcode(value: "BB-\(trip.id)", height: 34, horizontalAlignment: .center)
                     }
                 }
             }
         }
+        .sheet(item: $selectedFriend) { friend in
+            FriendProfileInkSheet(friend: friend, trip: trip)
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
+        }
+    }
+}
+
+private struct FriendProfileInkSheet: View {
+    let friend: InkFriend
+    let trip: InkTrip
+
+    var body: some View {
+        ZStack {
+            Ink.Blue.blue.ignoresSafeArea()
+            InkReceipt(padding: 18) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .center, spacing: 12) {
+                        AvatarStack(size: 42, names: [friend.name])
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(friend.name)
+                                .font(Ink.serif(25))
+                                .foregroundStyle(Ink.Blue.ink)
+                            ReceiptLabel(text: "Friend profile")
+                        }
+                    }
+                    DashedRule()
+                    SummaryLine(label: "Trip", amount: trip.location, script: false)
+                    SummaryLine(label: "Entries", amount: "\(trip.expenses.filter { $0.paidByID == friend.id || $0.splitWithIDs.contains(friend.id) }.count)", script: false)
+                    if friend.contact.isEmpty == false {
+                        SummaryLine(label: "Contact", amount: friend.contact, script: false)
+                    }
+                }
+            }
+            .padding(22)
+        }
+        .preferredColorScheme(.dark)
     }
 }
 

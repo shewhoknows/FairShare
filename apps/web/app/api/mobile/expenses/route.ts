@@ -67,8 +67,12 @@ export async function POST(req: NextRequest) {
     if (data.groupId) {
       const membership = await prisma.groupMember.findUnique({
         where: { groupId_userId: { groupId: data.groupId, userId: session.user.id } },
+        include: { group: { select: { finalizedAt: true } } },
       })
       if (!membership) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (membership.group.finalizedAt) {
+        return NextResponse.json({ error: 'Group is finalized' }, { status: 409 })
+      }
 
       const memberIds = (
         await prisma.groupMember.findMany({
@@ -139,4 +143,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

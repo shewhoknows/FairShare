@@ -48,10 +48,43 @@ struct GroupDTO: Codable, Identifiable, Hashable {
     let image: String?
     let currency: String
     let category: String
+    let status: String?
+    let finalizedAt: String?
+    let finalizedById: String?
     let memberCount: Int
     let expenseCount: Int
     let members: [MemberDTO]
     let expenses: [ExpenseDTO]?
+
+    init(
+        id: String,
+        name: String,
+        description: String?,
+        image: String?,
+        currency: String,
+        category: String,
+        status: String? = nil,
+        finalizedAt: String? = nil,
+        finalizedById: String? = nil,
+        memberCount: Int,
+        expenseCount: Int,
+        members: [MemberDTO],
+        expenses: [ExpenseDTO]?
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.image = image
+        self.currency = currency
+        self.category = category
+        self.status = status
+        self.finalizedAt = finalizedAt
+        self.finalizedById = finalizedById
+        self.memberCount = memberCount
+        self.expenseCount = expenseCount
+        self.members = members
+        self.expenses = expenses
+    }
 }
 
 struct ExpenseDTO: Codable, Identifiable, Hashable {
