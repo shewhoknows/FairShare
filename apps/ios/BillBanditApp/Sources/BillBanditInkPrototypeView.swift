@@ -13,6 +13,7 @@ enum InkScreen: String, CaseIterable, Identifiable {
     case finalBill = "09"
     case addEntry = "10"
     case addFriend = "11"
+    case profile = "13"
 
     var id: String { rawValue }
 
@@ -366,19 +367,19 @@ final class InkTripStore: ObservableObject {
     @discardableResult
     func addFriend(named rawName: String, contact: String, to tripID: String) async -> Bool {
         if let apiClient {
-            let normalizedUsername = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard normalizedUsername.isEmpty == false else {
-                setValidationError("Enter your friend’s username.")
+            let normalizedEmail = rawName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard normalizedEmail.isEmpty == false else {
+                setValidationError("Enter your friend’s BillBandit email.")
                 return false
             }
             errorMessage = nil
             BillBanditLog.ledger(
-                "event=ledger.member.add.start group=\(BillBanditLog.redactedID(tripID)) username_present=\(BillBanditLog.bool(normalizedUsername.isEmpty == false))"
+                "event=ledger.member.add.start group=\(BillBanditLog.redactedID(tripID)) email_present=\(BillBanditLog.bool(normalizedEmail.isEmpty == false))"
             )
             do {
                 let _: MemberResponse = try await apiClient.post(
                     "/api/mobile/groups/\(tripID)/members",
-                    body: AddMemberRequest(username: normalizedUsername)
+                    body: AddMemberRequest(email: normalizedEmail)
                 )
                 _ = await fetchTrip(id: tripID)
                 errorMessage = nil
@@ -401,13 +402,13 @@ final class InkTripStore: ObservableObject {
     }
 
     func validateFriendUsername(_ rawUsername: String) async -> Bool {
-        let username = rawUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard username.isEmpty == false else { return false }
+        let email = rawUsername.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard email.isEmpty == false else { return false }
 
         if let apiClient,
-           let encodedUsername = username.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+           let encodedEmail = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
             do {
-                let response: UsernameLookupResponse = try await apiClient.get("/api/mobile/users/lookup?username=\(encodedUsername)")
+                let response: UsernameLookupResponse = try await apiClient.get("/api/mobile/users/lookup?email=\(encodedEmail)")
                 return response.exists
             } catch {
                 BillBanditLog.ledger(
@@ -417,7 +418,7 @@ final class InkTripStore: ObservableObject {
             }
         }
 
-        return Self.demoUsernameExists(username)
+        return Self.demoUsernameExists(email)
     }
 
     @discardableResult
@@ -874,19 +875,28 @@ struct BillBanditInkPrototypeView: View {
     private let currentUser: UserDTO?
     private let onWelcomeLogin: (() -> Void)?
     private let onWelcomeCreateAccount: (() -> Void)?
+    private let onLogout: (() -> Void)?
 
     init(
         initialScreen: InkScreen = InkScreen.fromLaunchArguments(),
         apiClient: APIClient? = nil,
         currentUser: UserDTO? = nil,
         onWelcomeLogin: (() -> Void)? = nil,
-        onWelcomeCreateAccount: (() -> Void)? = nil
+        onWelcomeCreateAccount: (() -> Void)? = nil,
+        onLogout: (() -> Void)? = nil
     ) {
         let demoTrips = ProcessInfo.processInfo.arguments.contains("--ink-demo-data") ? InkTripStore.demoTrips() : []
         let initialTrip = demoTrips.first
         let initialSettlement = initialTrip.flatMap { InkTripStore.settlements(for: $0).first }
+        let shouldPreselectTrip = [
+            InkScreen.liveLedger,
+            .settle,
+            .recordPayment,
+            .finalBill,
+            .addEntry
+        ].contains(initialScreen)
         _screen = State(initialValue: initialScreen == .recordPayment ? .settle : initialScreen)
-        _selectedTripID = State(initialValue: initialScreen == .recordPayment ? initialTrip?.id : nil)
+        _selectedTripID = State(initialValue: shouldPreselectTrip ? initialTrip?.id : nil)
         _recordPaymentSheet = State(initialValue: initialScreen == .recordPayment ? initialTrip.flatMap { trip in
             initialSettlement.map { RecordPaymentSheetState(tripID: trip.id, settlement: $0) }
         } : nil)
@@ -895,6 +905,7 @@ struct BillBanditInkPrototypeView: View {
         self.currentUser = currentUser
         self.onWelcomeLogin = onWelcomeLogin
         self.onWelcomeCreateAccount = onWelcomeCreateAccount
+        self.onLogout = onLogout
     }
 
     var body: some View {
@@ -979,6 +990,13 @@ struct BillBanditInkPrototypeView: View {
             NewMemberInkScreen(
                 onClose: { screen = store.trips.isEmpty ? .tripsEmpty : .yourTrips },
                 onCreate: { screen = store.trips.isEmpty ? .tripsEmpty : .yourTrips }
+            )
+        case .profile:
+            ProfileInkScreen(
+                user: currentUser,
+                onBack: { screen = store.trips.isEmpty ? .tripsEmpty : .yourTrips },
+                onLogout: onLogout,
+                onTab: handleTab
             )
         case .tripsEmpty:
             TripsEmptyInkScreen(
@@ -1199,7 +1217,7 @@ struct BillBanditInkPrototypeView: View {
             if selectedTripID == nil { selectedTripID = store.trips.first?.id }
             screen = .settle
         case .profile:
-            screen = .newMember
+            screen = .profile
         }
     }
 
@@ -1552,7 +1570,11 @@ private struct InkBottomTabs: View {
                     .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50)
                     .foregroundStyle(tab == active ? Ink.Blue.cream : Ink.Blue.cream.opacity(0.70))
                 }
+                .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50)
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("bottomTab.\(tab.title.lowercased())")
+                .accessibilityValue(tab == active ? "selected" : "not selected")
             }
         }
         .padding(.horizontal, 16)
@@ -2152,6 +2174,65 @@ private struct NewMemberInkScreen: View {
     }
 }
 
+private struct ProfileInkScreen: View {
+    let user: UserDTO?
+    let onBack: () -> Void
+    let onLogout: (() -> Void)?
+    let onTab: (InkBottomTab) -> Void
+
+    private var displayName: String {
+        user?.displayName.trimmedOrDefault("BillBandit user") ?? "Demo User"
+    }
+
+    private var accountContact: String {
+        if let email = user?.email?.trimmingCharacters(in: .whitespacesAndNewlines), email.isEmpty == false {
+            return email
+        }
+        if let phone = user?.phone?.trimmingCharacters(in: .whitespacesAndNewlines), phone.isEmpty == false {
+            return phone
+        }
+        return "Demo account"
+    }
+
+    private var upiID: String {
+        user?.upiID?.trimmedOrDefault("Not set") ?? "Not set"
+    }
+
+    var body: some View {
+        InkAppShell(
+            title: "Profile",
+            leftIcon: "chevron.left",
+            onLeft: onBack,
+            activeTab: .profile,
+            onTab: onTab,
+            contentSpacing: 14,
+            inlineTitleIcon: true,
+            topBarTopSpacing: 26
+        ) {
+            MascotPeek(size: 118)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, -18)
+                .zIndex(2)
+
+            InkReceipt {
+                VStack(alignment: .leading, spacing: 16) {
+                    ReceiptLabel(text: "Account profile")
+                        .frame(maxWidth: .infinity)
+                    DashedRule()
+                    ReceiptField(label: "Name", value: displayName)
+                    ReceiptField(label: "Phone or email", value: accountContact)
+                    ReceiptField(label: "UPI ID", value: upiID)
+                }
+            }
+
+            if let onLogout {
+                OutlineCreamButton(title: "Sign out", action: onLogout)
+                    .accessibilityIdentifier("profile.logout")
+            }
+        }
+    }
+}
+
 private struct ReceiptField: View {
     let label: String
     let value: String
@@ -2268,7 +2349,6 @@ private struct YourTripsInkScreen: View {
             onRight: onAdd,
             activeTab: .trips,
             onTab: onTab,
-            visibleTabs: [.trips, .profile],
             contentSpacing: 10,
             inlineTitleIcon: true,
             topBarTopSpacing: 8
@@ -3104,6 +3184,7 @@ private struct SettleInkScreen: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("settlementRow.\(index)")
                         }
                     }
                 }
@@ -3398,6 +3479,7 @@ private struct RecordPaymentInkModal: View {
                             await save(selectedTrip)
                         }
                     }
+                    .accessibilityIdentifier("recordPayment.save")
                     .padding(.horizontal, 2)
                     .padding(.bottom, 12)
                 }
@@ -3781,7 +3863,7 @@ private struct AddFriendInkScreen: View {
             InkReceipt(padding: 16) {
                 VStack(alignment: .leading, spacing: 16) {
                     ReceiptTextField(
-                        label: "Username",
+                        label: "Email",
                         value: $name,
                         autocapitalization: .never,
                         submitLabel: .done,
@@ -3796,7 +3878,7 @@ private struct AddFriendInkScreen: View {
 
                     UsernameLookupStatusView(status: usernameStatus)
 
-                    Text("Find your friends with their username")
+                    Text("Find your friends with their BillBandit email")
                         .font(Ink.mono(11, weight: .medium))
                         .foregroundStyle(Ink.Blue.inkSoft)
                         .lineSpacing(3)
@@ -3826,7 +3908,7 @@ private struct AddFriendInkScreen: View {
 
     private func save() async {
         guard canSubmit else {
-            localErrorMessage = hasName ? "Choose a valid BillBandit username." : "Enter a username."
+            localErrorMessage = hasName ? "Choose a valid BillBandit email." : "Enter an email."
             return
         }
 
@@ -3837,7 +3919,7 @@ private struct AddFriendInkScreen: View {
         if await onAdd(name, name) {
             onClose()
         } else if visibleErrorMessage == nil {
-            localErrorMessage = "Couldn’t add this friend. Check the username and try again."
+            localErrorMessage = "Couldn’t add this friend. Check the email and try again."
         }
     }
 
@@ -3916,19 +3998,19 @@ private struct UsernameLookupStatusView: View {
                 HStack(spacing: 6) {
                     ProgressView()
                         .controlSize(.mini)
-                    Text("Checking username")
+                    Text("Checking account")
                 }
                 .foregroundStyle(Ink.Blue.inkSoft)
             case .found:
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
-                    Text("Username found")
+                    Text("Account found")
                 }
                 .foregroundStyle(Ink.Blue.success)
             case .notFound:
                 HStack(spacing: 6) {
                     Image(systemName: "xmark.circle.fill")
-                    Text("Username not found")
+                    Text("Account not found")
                 }
                 .foregroundStyle(Ink.Blue.inkSoft)
             }
@@ -4023,21 +4105,24 @@ private struct AddEntryInkScreen: View {
                         .font(Ink.mono(11, weight: .medium))
                         .foregroundStyle(Ink.Blue.inkSoft)
                     ForEach(trip.friends) { friend in
-                        Button {
-                            if draft.splitWithIDs.contains(friend.id), draft.splitWithIDs.count > 1 {
-                                draft.splitWithIDs.remove(friend.id)
-                            } else {
-                                draft.splitWithIDs.insert(friend.id)
-                            }
-                        } label: {
-                            SplitPersonRow(
-                                name: friend.name,
-                                amount: draft.splitWithIDs.contains(friend.id) ? rupees(splitAmount) : "Not split",
-                                isSelected: draft.splitWithIDs.contains(friend.id)
-                            )
+                        let isSplit = draft.splitWithIDs.contains(friend.id)
+                        SplitPersonRow(
+                            name: friend.name,
+                            amount: isSplit ? rupees(splitAmount) : "Not split",
+                            isSelected: isSplit
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 38, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            toggleSplit(friend.id)
                         }
-                        .buttonStyle(.plain)
-                            .accessibilityIdentifier("addEntry.split.\(friend.name)")
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityIdentifier("addEntry.split.\(friend.name)")
+                        .accessibilityValue(isSplit ? "selected" : "not selected")
+                        .accessibilityAction {
+                            toggleSplit(friend.id)
+                        }
                     }
 
                     if let visibleErrorMessage {
@@ -4050,11 +4135,13 @@ private struct AddEntryInkScreen: View {
                 isLoading: isSaving,
                 isDisabled: isSaveDisabled
             ) {
+                dismissKeyboard()
                 Task { await save() }
             }
                 .accessibilityIdentifier("addEntry.save")
             if let editingExpense {
                 Button("Delete entry") {
+                    dismissKeyboard()
                     Task { await delete(editingExpense) }
                 }
                 .font(Ink.serif(16, weight: .semibold))
@@ -4102,6 +4189,15 @@ private struct AddEntryInkScreen: View {
             selectedSplitCount == 0
     }
 
+    private func toggleSplit(_ friendID: String) {
+        dismissKeyboard()
+        if draft.splitWithIDs.contains(friendID), draft.splitWithIDs.count > 1 {
+            draft.splitWithIDs.remove(friendID)
+        } else {
+            draft.splitWithIDs.insert(friendID)
+        }
+    }
+
     private func save() async {
         guard isSaveDisabled == false else {
             localErrorMessage = validationMessage
@@ -4126,6 +4222,10 @@ private struct AddEntryInkScreen: View {
         if await onDelete(expense) == false, visibleErrorMessage == nil {
             localErrorMessage = "Couldn’t delete this entry. Try again."
         }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private var validationMessage: String {
@@ -4158,7 +4258,7 @@ private struct SplitPersonRow: View {
         }
         .font(Ink.mono(13, weight: .semibold))
         .foregroundStyle(Ink.Blue.ink)
-        .padding(.vertical, 3)
+        .padding(.vertical, 10)
     }
 }
 

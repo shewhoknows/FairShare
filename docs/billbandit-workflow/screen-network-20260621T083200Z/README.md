@@ -4,6 +4,8 @@ Generated from the BillBandit QA iOS simulator on 2026-06-21.
 
 ## Visuals
 
+- [V4 Railway iOS workflow route-strip map](billbandit-route-strips-v4-railway.png) recommended for the current iOS-only Railway-tested scope
+- [V4 Railway route manifest](billbandit-v4-railway-route-manifest.json)
 - [V3 route-strip navigation map](billbandit-route-strips-v3.png) recommended
 - [V3 route manifest](billbandit-v3-route-manifest.json)
 - [Clean route-strip navigation map v2](billbandit-route-strips-v2.png)
@@ -15,6 +17,9 @@ Generated from the BillBandit QA iOS simulator on 2026-06-21.
 
 ## Capture Notes
 
+- V4 was regenerated after the Railway-only iOS test pass. It updates the workflow network for OTP/profile/logout, Railway ledger create/add/edit/delete/finalize, add-friend-by-email, two-person split, settlement row, and record payment.
+- V4 intentionally excludes the web UI and native tab UI because the current workstream is scoped to the blue/cream iOS ink app.
+- `17-profile-placeholder` is a placeholder for the newly wired Profile screen until the next simulator screenshot capture.
 - Screens 01-15 were captured from the installed simulator app using the app's launch arguments.
 - `05a-date-picker` and `06a-ledger-empty` were captured by driving the simulator UI with XcodeBuildMCP.
 - `06b-finalized-ledger` was captured after marking the demo ledger final and tapping See all.

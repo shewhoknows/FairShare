@@ -15,7 +15,7 @@ const logsDir = path.join(evidenceDir, 'logs')
 const screenshotsDir = path.join(evidenceDir, 'screenshots')
 const simulatorDir = path.join(evidenceDir, 'simulator')
 
-const expectedBundleId = 'com.eshabhoon.fairshare'
+const expectedBundleId = 'com.esha.fareshare'
 const expectedApiHost = process.env.RELEASE_API_HOST ?? 'billbandit-api.contenthelper.in'
 const expectedApiUrl = `https://${expectedApiHost}`
 const railwayFallbackUrl = process.env.RELEASE_RAILWAY_FALLBACK_URL ?? 'https://r0t6mi4v.up.railway.app'
@@ -32,7 +32,7 @@ const gates = []
 const blockers = []
 const warnings = []
 const manualActions = [
-  'Confirm App Store Connect distribution signing/profile for com.eshabhoon.fairshare.',
+  'Confirm App Store Connect distribution signing/profile for com.esha.fareshare.',
   'Increment CFBundleVersion before each App Store Connect upload.',
   'Remove or intentionally retain scoped production OTP QA variables before public release.',
   'Upload/archive through an authenticated Xcode or App Store Connect API key session.',

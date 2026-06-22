@@ -113,11 +113,10 @@ actor MockBillBanditAPI {
             value = UserResponse(user: currentUser)
 
         case ("GET", let lookupPath) where lookupPath.hasPrefix("/api/mobile/users/lookup"):
-            let username = URLComponents(string: lookupPath)?
-                .queryItems?
-                .first(where: { $0.name == "username" })?
-                .value ?? ""
-            let foundUser = user(username: username)
+            let queryItems = URLComponents(string: lookupPath)?.queryItems ?? []
+            let email = queryItems.first(where: { $0.name == "email" })?.value ?? ""
+            let username = queryItems.first(where: { $0.name == "username" })?.value ?? ""
+            let foundUser = email.isEmpty ? user(username: username) : user(email: email)
             value = UsernameLookupResponse(exists: foundUser != nil, user: foundUser)
 
         case ("POST", "/api/mobile/auth/otp/start"):
@@ -219,7 +218,7 @@ actor MockBillBanditAPI {
                 user = nil
             }
             guard let user else {
-                throw APIError.server("No user found with that username")
+                throw APIError.server("No user found with that email address")
             }
             if groups[index].members.contains(where: { $0.userId == user.id }) {
                 throw APIError.server("User is already a member of this group")

@@ -203,7 +203,11 @@ private struct AuthenticatedBillBanditRootView: View {
                         BillBanditInkPrototypeView(
                             initialScreen: .tripsEmpty,
                             apiClient: authStore.apiClient,
-                            currentUser: user
+                            currentUser: user,
+                            onLogout: {
+                                authStore.logout()
+                                signedOutDestination = .welcome
+                            }
                         )
                     } else {
                         authFlow(profileUser: user)

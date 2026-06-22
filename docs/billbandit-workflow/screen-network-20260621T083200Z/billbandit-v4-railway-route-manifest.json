@@ -1,0 +1,181 @@
+{
+  "title": "BillBandit iOS Ink Railway Workflow Network",
+  "subtitle": "V4 route strips from SwiftUI routing and the Railway-only iOS test pass. Web and native-tab UI are intentionally out of scope.",
+  "screens_dir": "./screens",
+  "width": 2140,
+  "thumb_width": 112,
+  "card_width": 172,
+  "row_label_width": 270,
+  "screens": {
+    "01": { "file": "01-welcome.png", "label": "Welcome" },
+    "02": { "file": "02-new-member.png", "label": "New Member Legacy" },
+    "03": { "file": "03-trips-empty.png", "label": "Trips Empty" },
+    "04": { "file": "04-your-trips.png", "label": "Your Trips" },
+    "05": { "file": "05-new-ledger.png", "label": "New Ledger" },
+    "05a": { "file": "05a-date-picker.png", "label": "Date Picker" },
+    "06": { "file": "06-live-ledger.png", "label": "Live Ledger" },
+    "06a": { "file": "06a-ledger-empty.png", "label": "Ledger Empty" },
+    "06b": { "file": "06b-finalized-ledger.png", "label": "Finalized Ledger" },
+    "07": { "file": "07-settle.png", "label": "Settle" },
+    "08": { "file": "08-record-payment.png", "label": "Record Payment" },
+    "09": { "file": "09-final-bill.png", "label": "Final Bill" },
+    "10": { "file": "10-add-entry.png", "label": "Add Entry" },
+    "11": { "file": "11-add-friend.png", "label": "Add Friend" },
+    "12": { "file": "12-auth-start.png", "label": "Auth Start" },
+    "13": { "file": "13-auth-otp.png", "label": "Auth OTP" },
+    "14": { "file": "14-auth-profile.png", "label": "Auth Profile" },
+    "15": { "file": "15-auth-loading.png", "label": "Auth Loading" },
+    "17": { "file": "17-profile-placeholder.png", "label": "Profile" }
+  },
+  "routes": [
+    {
+      "title": "A. Railway sign-in and landing",
+      "subtitle": "Signed-out users enter the blue/cream welcome screen, verify OTP against Railway, then land on real trips or the empty trips state.",
+      "rows": [
+        {
+          "label": "Returning account",
+          "color": "#67e8f9",
+          "steps": [
+            { "screen": "01", "transition": "login" },
+            { "screen": "12", "transition": "send code" },
+            { "screen": "13", "transition": "verify OTP" },
+            { "screen": "15", "transition": "restore" },
+            { "screen": "04", "transition": "" }
+          ]
+        },
+        {
+          "label": "No existing ledgers",
+          "color": "#34d399",
+          "steps": [
+            { "screen": "15", "transition": "empty account" },
+            { "screen": "03", "transition": "" }
+          ]
+        },
+        {
+          "label": "Incomplete profile gate",
+          "color": "#f59e0b",
+          "steps": [
+            { "screen": "13", "transition": "needs profile" },
+            { "screen": "14", "transition": "save profile" },
+            { "screen": "15", "transition": "ready" },
+            { "screen": "04", "transition": "" }
+          ]
+        }
+      ],
+      "legend": {
+        "title": "Auth evidence",
+        "items": [
+          { "label": "LIVE", "target": "testRailwayOTPAuthSignsIntoReceiptTrips passed against Railway" },
+          { "label": "OTP", "target": "AuthStore calls /api/mobile/auth/otp/start and /verify" }
+        ]
+      }
+    },
+    {
+      "title": "B. Railway ledger creation and entry CRUD",
+      "subtitle": "The primary ledger workflow is now tested against Railway: create group, add entry, edit entry, delete entry, and return to empty ledger.",
+      "steps": [
+        { "screen": "04", "transition": "add ledger" },
+        { "screen": "05", "transition": "open ledger" },
+        { "screen": "06a", "transition": "add entry" },
+        { "screen": "10", "transition": "save" },
+        { "screen": "06", "transition": "edit/delete" },
+        { "screen": "10", "transition": "delete" },
+        { "screen": "06a", "transition": "" }
+      ]
+    },
+    {
+      "title": "C. Live ledger action loops",
+      "subtitle": "Hub loops from Live Ledger. Hub screens repeat so the route stays traceable and avoids crossed connectors.",
+      "rows": [
+        {
+          "label": "Add or edit expense",
+          "color": "#67e8f9",
+          "steps": [
+            { "screen": "06", "transition": "add/edit" },
+            { "screen": "10", "transition": "save" },
+            { "screen": "06", "transition": "" }
+          ]
+        },
+        {
+          "label": "Add friend by email",
+          "color": "#34d399",
+          "steps": [
+            { "screen": "06", "transition": "person +" },
+            { "screen": "11", "transition": "account found" },
+            { "screen": "06", "transition": "" }
+          ]
+        },
+        {
+          "label": "Bottom tab hubs",
+          "color": "#a78bfa",
+          "steps": [
+            { "screen": "06", "transition": "trips tab" },
+            { "screen": "04", "transition": "ledger tab" },
+            { "screen": "06", "transition": "" }
+          ]
+        },
+        {
+          "label": "Profile and logout",
+          "color": "#f472b6",
+          "steps": [
+            { "screen": "04", "transition": "profile tab" },
+            { "screen": "17", "transition": "sign out" },
+            { "screen": "01", "transition": "" }
+          ]
+        }
+      ],
+      "legend": {
+        "title": "Loop rules",
+        "items": [
+          { "label": "FRIEND", "target": "Ledger-scoped add member uses BillBandit email" },
+          { "label": "PROFILE", "target": "Profile screenshot is a placeholder until next capture" }
+        ]
+      }
+    },
+    {
+      "title": "D. Two-person split and settlement payment",
+      "subtitle": "Railway-tested path: seed/register friend, add that friend to the ledger, create a split expense, view simplified settlement, and record payment.",
+      "steps": [
+        { "screen": "06", "transition": "add friend" },
+        { "screen": "11", "transition": "email found" },
+        { "screen": "06", "transition": "add split" },
+        { "screen": "10", "transition": "save" },
+        { "screen": "06", "transition": "settle tab" },
+        { "screen": "07", "transition": "tap row" },
+        { "screen": "08", "transition": "mark paid" },
+        { "screen": "07", "transition": "all square" }
+      ]
+    },
+    {
+      "title": "E. Finalization and final bill",
+      "subtitle": "Admins can mark an open Railway ledger final. Final Bill can route back to the ledger history; finalized ledgers no longer behave like live-edit ledgers.",
+      "steps": [
+        { "screen": "06", "transition": "mark final" },
+        { "screen": "09", "transition": "see all" },
+        { "screen": "06b", "transition": "settle tab" },
+        { "screen": "07", "transition": "" }
+      ]
+    }
+  ],
+  "inventory": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "05a",
+    "06",
+    "06a",
+    "06b",
+    "07",
+    "08",
+    "09",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "17"
+  ]
+}

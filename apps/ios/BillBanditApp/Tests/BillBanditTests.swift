@@ -59,7 +59,7 @@ final class BillBanditTests: XCTestCase {
         )
         var trip = try XCTUnwrap(createdTrip)
 
-        let didAddFriend = await store.addFriend(named: "Bob Smith", contact: "bob@example.com", to: trip.id)
+        let didAddFriend = await store.addFriend(named: "bob@example.com", contact: "bob@example.com", to: trip.id)
         XCTAssertTrue(didAddFriend)
 
         trip = try XCTUnwrap(store.trip(id: trip.id))
