@@ -13,8 +13,12 @@ export async function POST(
 
   const myMembership = await prisma.groupMember.findUnique({
     where: { groupId_userId: { groupId: params.id, userId: session.user.id } },
+    include: { group: { select: { finalizedAt: true } } },
   })
   if (!myMembership) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (myMembership.group.finalizedAt) {
+    return NextResponse.json({ error: 'Group is finalized' }, { status: 409 })
+  }
 
   const body = await req.json()
   const parsed = addMemberSchema.safeParse(body)
@@ -53,4 +57,3 @@ export async function POST(
 
   return NextResponse.json({ member: mobileMember(member) }, { status: 201 })
 }
-

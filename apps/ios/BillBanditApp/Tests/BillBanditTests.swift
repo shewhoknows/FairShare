@@ -22,6 +22,15 @@ final class BillBanditTests: XCTestCase {
         XCTAssertEqual(normalized.upiID, "meera@upi")
     }
 
+    func testFriendChipLabelsUseFullFirstNameAndLastInitialForDuplicateFirstNames() {
+        let candidates = ["You", "Meera Kapoor", "Meera Shah", "Arjun Singh"]
+
+        XCTAssertEqual(FriendChipLabeler.label(for: "Meera Kapoor", in: candidates), "Meera K")
+        XCTAssertEqual(FriendChipLabeler.label(for: "Meera Shah", in: candidates), "Meera S")
+        XCTAssertEqual(FriendChipLabeler.label(for: "Arjun Singh", in: candidates), "Arjun")
+        XCTAssertEqual(FriendChipLabeler.label(for: "You", in: candidates), "You")
+    }
+
     @MainActor
     func testInkStoreRunsLedgerFlowThroughMobileAPIClient() async throws {
         let client = APIClient(baseURL: try XCTUnwrap(URL(string: "mock://billbandit"))) { "mock-token" }
@@ -50,7 +59,7 @@ final class BillBanditTests: XCTestCase {
         )
         var trip = try XCTUnwrap(createdTrip)
 
-        let didAddFriend = await store.addFriend(named: "Bob Smith", contact: "bob@example.com", to: trip.id)
+        let didAddFriend = await store.addFriend(named: "bob@example.com", contact: "bob@example.com", to: trip.id)
         XCTAssertTrue(didAddFriend)
 
         trip = try XCTUnwrap(store.trip(id: trip.id))
@@ -107,5 +116,74 @@ final class BillBanditTests: XCTestCase {
         let didDeleteBobExpense = await store.deleteExpense(bobExpense.id, in: trip.id)
         XCTAssertFalse(didDeleteBobExpense)
         XCTAssertEqual(store.errorMessage, "Only the payer can delete an expense")
+    }
+
+    @MainActor
+    func testInkStoreClampsStaleExpenseParticipantsToRemoteGroupMembers() async throws {
+        let client = APIClient(baseURL: try XCTUnwrap(URL(string: "mock://billbandit"))) { "mock-token" }
+        let auth: AuthResponse = try await client.post(
+            "/api/mobile/auth/apple",
+            body: AppleSignInRequest(
+                identityToken: "mock-token-stale-split",
+                authorizationCode: nil,
+                nonce: nil,
+                fullName: "Stale Split Tester",
+                email: "stale.split@example.com"
+            )
+        )
+
+        let store = InkTripStore()
+        await store.configure(apiClient: client, currentUser: auth.user)
+
+        let createdTripResult = await store.createTrip(
+            from: InkTripDraft(
+                title: "Solo Remote Ledger",
+                location: "Goa",
+                dates: "4-8 Dec 2026",
+                friendNames: ["You", "Meera", "Arjun", "Kabir"]
+            )
+        )
+        let createdTrip = try XCTUnwrap(createdTripResult)
+
+        var draft = InkExpenseDraft(trip: createdTrip)
+        draft.title = "Solo chai"
+        draft.amount = "120"
+        draft.paidByID = "local-prototype-payer"
+        draft.splitWithIDs = ["local-prototype-1", "local-prototype-2", "local-prototype-3", "local-prototype-4"]
+
+        let didSave = await store.saveExpense(draft, in: createdTrip.id, editing: nil)
+        XCTAssertTrue(didSave)
+
+        let refreshedTrip = try XCTUnwrap(store.trip(id: createdTrip.id))
+        let expense = try XCTUnwrap(refreshedTrip.expenses.first { $0.title == "Solo chai" })
+        XCTAssertEqual(expense.paidByID, store.currentUserID)
+        XCTAssertEqual(expense.splitWithIDs, [store.currentUserID])
+    }
+
+    @MainActor
+    func testInkStoreLocalLedgerUsesYouAsCurrentUser() async throws {
+        let store = InkTripStore()
+        let createdTripResult = await store.createTrip(
+            from: InkTripDraft(
+                title: "Local Ledger",
+                location: "Goa",
+                dates: "4-8 Dec 2026",
+                friendNames: ["You"]
+            )
+        )
+        let createdTrip = try XCTUnwrap(createdTripResult)
+
+        var draft = InkExpenseDraft(trip: createdTrip)
+        draft.title = "Dinner"
+        draft.amount = "100"
+
+        let didSave = await store.saveExpense(draft, in: createdTrip.id, editing: nil)
+        XCTAssertTrue(didSave)
+        let refreshedTrip = try XCTUnwrap(store.trip(id: createdTrip.id))
+        let summary = store.summary(for: refreshedTrip)
+
+        XCTAssertEqual(summary.total, 100, accuracy: 0.01)
+        XCTAssertEqual(summary.userShare, 100, accuracy: 0.01)
+        XCTAssertEqual(summary.userNet, 0, accuracy: 0.01)
     }
 }

@@ -213,6 +213,26 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/mobile/groups/{id}/finalize:
+    post:
+      summary: Finalize a group ledger.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntityId'
+      responses:
+        '200':
+          description: Finalized group detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /api/mobile/groups/{id}/members:
     post:
       summary: Add a member by email.
@@ -293,6 +313,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /api/mobile/expenses/{id}:
     get:
       summary: Read an expense.
@@ -340,6 +362,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
     delete:
       summary: Soft-delete an expense.
       security:
@@ -359,6 +383,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /api/mobile/transactions:
     post:
       summary: Record a settlement transaction.
@@ -653,6 +679,9 @@ components:
         - image
         - currency
         - category
+        - status
+        - finalizedAt
+        - finalizedById
         - memberCount
         - expenseCount
         - members
@@ -669,6 +698,14 @@ components:
           type: string
         category:
           type: string
+        status:
+          type: string
+          enum: [ACTIVE, FINALIZED]
+        finalizedAt:
+          type: [string, 'null']
+          format: date-time
+        finalizedById:
+          type: [string, 'null']
         memberCount:
           type: integer
         expenseCount:

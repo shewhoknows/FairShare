@@ -55,15 +55,16 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  password      String?   // bcrypt hash – null for OAuth users
+  password      String? // bcrypt hash – null for OAuth users
   phone         String?   @unique
   preferredName String?
   upiID         String?
 
-  accounts      Account[]
-  sessions      Session[]
+  accounts Account[]
+  sessions Session[]
 
   groupMemberships GroupMember[]
+  finalizedGroups  Group[]        @relation("GroupFinalizedBy")
   paidExpenses     Expense[]      @relation("PaidBy")
   expenseSplits    ExpenseSplit[]
 
@@ -98,20 +99,25 @@ model MobileOTPChallenge {
 }
 
 model Group {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  image       String?
-  currency    String  @default("USD")
-  category    GroupCategory @default(OTHER)
-  isArchived  Boolean @default(false)
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  image         String?
+  currency      String        @default("USD")
+  category      GroupCategory @default(OTHER)
+  isArchived    Boolean       @default(false)
+  finalizedAt   DateTime?
+  finalizedById String?
 
   members      GroupMember[]
   expenses     Expense[]
   transactions Transaction[]
+  finalizedBy  User?         @relation("GroupFinalizedBy", fields: [finalizedById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([finalizedById])
 }
 
 enum GroupCategory {
@@ -144,30 +150,30 @@ enum GroupRole {
 }
 
 model Expense {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   description String
   amount      Float
-  currency    String    @default("USD")
-  date        DateTime  @default(now())
-  category    String    @default("general")
+  currency    String   @default("USD")
+  date        DateTime @default(now())
+  category    String   @default("general")
 
-  groupId  String?
-  group    Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId String?
+  group   Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   paidById String
   paidBy   User   @relation("PaidBy", fields: [paidById], references: [id])
 
   splits    ExpenseSplit[]
-  splitType SplitType @default(EQUAL)
+  splitType SplitType      @default(EQUAL)
 
-  receiptUrl  String?
-  notes       String?
+  receiptUrl String?
+  notes      String?
 
-  isRecurring        Boolean            @default(false)
-  recurringInterval  RecurringInterval?
-  recurringEndDate   DateTime?
+  isRecurring       Boolean            @default(false)
+  recurringInterval RecurringInterval?
+  recurringEndDate  DateTime?
 
-  isDeleted Boolean @default(false)
+  isDeleted Boolean   @default(false)
   comments  Comment[]
 
   createdAt DateTime @default(now())
@@ -197,9 +203,9 @@ model ExpenseSplit {
   expenseId String
   userId    String
 
-  amount     Float  // actual dollar amount this user owes
+  amount     Float // actual dollar amount this user owes
   percentage Float? // original percentage if PERCENTAGE split
-  shares     Int?   // original shares if SHARES split
+  shares     Int? // original shares if SHARES split
   isPaid     Boolean @default(false)
 
   expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
@@ -210,17 +216,17 @@ model ExpenseSplit {
 }
 
 model Transaction {
-  id         String   @id @default(cuid())
-  senderId   String   // person who paid
-  receiverId String   // person who received
+  id         String  @id @default(cuid())
+  senderId   String // person who paid
+  receiverId String // person who received
   amount     Float
-  currency   String   @default("USD")
+  currency   String  @default("USD")
   note       String?
 
   groupId String?
   group   Group?  @relation(fields: [groupId], references: [id])
 
-  sender   User @relation("Sender",   fields: [senderId],   references: [id])
+  sender   User @relation("Sender", fields: [senderId], references: [id])
   receiver User @relation("Receiver", fields: [receiverId], references: [id])
 
   createdAt DateTime @default(now())
@@ -237,7 +243,7 @@ model Friendship {
   status FriendshipStatus @default(PENDING)
 
   from User @relation("FriendFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  to   User @relation("FriendTo",   fields: [toId],   references: [id], onDelete: Cascade)
+  to   User @relation("FriendTo", fields: [toId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 

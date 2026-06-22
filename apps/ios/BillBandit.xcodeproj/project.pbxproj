@@ -63,6 +63,7 @@
 		4652772E8C74349E98AF2FCA /* InkAuthFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkAuthFlowView.swift; sourceTree = "<group>"; };
 		46E4B9046848FA53AF6A08F0 /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
 		4D8C60FC951D7BB34C575021 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		59DCA648FCDCBF1B4DFAF591 /* BillBandit.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BillBandit.entitlements; sourceTree = "<group>"; };
 		6ED4E37B1667AEC6352AE9B2 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		755CD3271B8FCB1F86E60D0D /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		7692D7C8A57DBA9D93693D1D /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
@@ -116,6 +117,7 @@
 				8471BA0AD5C3241B36BB6767 /* Assets.xcassets */,
 				7692D7C8A57DBA9D93693D1D /* AuthStore.swift */,
 				B9F0F12FB02047AFC25EC83E /* AuthView.swift */,
+				59DCA648FCDCBF1B4DFAF591 /* BillBandit.entitlements */,
 				A5E33867B4FDEA34F5BFBF60 /* BillBanditApp.swift */,
 				0223CE1C9C01A2D11533192C /* BillBanditInkPrototypeView.swift */,
 				AD23BBF3460EF2E1BB4B2BE0 /* BillBanditMascots.swift */,
@@ -340,7 +342,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.esha.fareshare.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BillBandit.app/BillBandit";
@@ -357,7 +359,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.esha.fareshare.uitests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = BillBandit;
@@ -380,7 +382,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.esha.fareshare;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -402,7 +404,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.esha.fareshare;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -418,7 +420,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.esha.fareshare.uitests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = BillBandit;
@@ -556,7 +558,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.eshabhoon.fairshare.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.esha.fareshare.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BillBandit.app/BillBandit";

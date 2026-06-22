@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const code = generateOTP()
+    const code = generateOTP(identifier)
     const challenge = await prisma.mobileOTPChallenge.create({
       data: {
         identifier: identifier.value,

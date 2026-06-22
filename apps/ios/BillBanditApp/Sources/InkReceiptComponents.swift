@@ -59,6 +59,10 @@ struct ReceiptCard<Content: View>: View {
     let title: String?
     let subtitle: String?
     let barcodeValue: String?
+    let barcodeHorizontalAlignment: HorizontalAlignment
+    let minHeight: CGFloat?
+    let pinsBarcodeToBottom: Bool
+    let footerAboveBarcode: AnyView?
     let showsPerforatedEdges: Bool
     let content: Content
 
@@ -67,6 +71,10 @@ struct ReceiptCard<Content: View>: View {
         title: String? = nil,
         subtitle: String? = nil,
         barcodeValue: String? = nil,
+        barcodeHorizontalAlignment: HorizontalAlignment = .leading,
+        minHeight: CGFloat? = nil,
+        pinsBarcodeToBottom: Bool = false,
+        footerAboveBarcode: AnyView? = nil,
         showsPerforatedEdges: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
@@ -74,6 +82,10 @@ struct ReceiptCard<Content: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.barcodeValue = barcodeValue
+        self.barcodeHorizontalAlignment = barcodeHorizontalAlignment
+        self.minHeight = minHeight
+        self.pinsBarcodeToBottom = pinsBarcodeToBottom
+        self.footerAboveBarcode = footerAboveBarcode
         self.showsPerforatedEdges = showsPerforatedEdges
         self.content = content()
     }
@@ -88,12 +100,18 @@ struct ReceiptCard<Content: View>: View {
             content
 
             if let barcodeValue {
+                if pinsBarcodeToBottom {
+                    Spacer(minLength: 0)
+                }
+                if let footerAboveBarcode {
+                    footerAboveBarcode
+                }
                 PerforationDivider()
-                Barcode(value: barcodeValue)
+                Barcode(value: barcodeValue, horizontalAlignment: barcodeHorizontalAlignment)
             }
         }
         .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(InkReceiptTheme.receiptPaper)
@@ -274,10 +292,11 @@ struct Seal: View {
 struct Barcode: View {
     let value: String
     var height: CGFloat = 42
+    var horizontalAlignment: HorizontalAlignment = .leading
     var ink = InkReceiptTheme.structureInk
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: horizontalAlignment, spacing: 5) {
             HStack(alignment: .bottom, spacing: 2) {
                 ForEach(Array(widths.enumerated()), id: \.offset) { _, width in
                     RoundedRectangle(cornerRadius: 0.8)
@@ -285,7 +304,6 @@ struct Barcode: View {
                         .frame(width: width, height: height)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()
             .accessibilityHidden(true)
 
@@ -295,7 +313,19 @@ struct Barcode: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
+        .frame(maxWidth: .infinity, alignment: frameAlignment)
         .accessibilityLabel("Barcode \(value)")
+    }
+
+    private var frameAlignment: Alignment {
+        switch horizontalAlignment {
+        case .center:
+            .center
+        case .trailing:
+            .trailing
+        default:
+            .leading
+        }
     }
 
     private var widths: [CGFloat] {

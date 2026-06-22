@@ -46,11 +46,17 @@ export async function PUT(
 
   const existing = await prisma.expense.findUnique({
     where: { id: params.id, isDeleted: false },
-    select: { paidById: true },
+    select: {
+      paidById: true,
+      group: { select: { finalizedAt: true } },
+    },
   })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (existing.paidById !== session.user.id) {
     return NextResponse.json({ error: 'Only the payer can edit an expense' }, { status: 403 })
+  }
+  if (existing.group?.finalizedAt) {
+    return NextResponse.json({ error: 'Group is finalized' }, { status: 409 })
   }
 
   try {
@@ -64,8 +70,12 @@ export async function PUT(
     if (data.groupId) {
       const membership = await prisma.groupMember.findUnique({
         where: { groupId_userId: { groupId: data.groupId, userId: session.user.id } },
+        include: { group: { select: { finalizedAt: true } } },
       })
       if (!membership) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (membership.group.finalizedAt) {
+        return NextResponse.json({ error: 'Group is finalized' }, { status: 409 })
+      }
 
       const memberIds = (
         await prisma.groupMember.findMany({
@@ -146,11 +156,18 @@ export async function DELETE(
 
   const expense = await prisma.expense.findUnique({
     where: { id: params.id },
-    select: { paidById: true, description: true },
+    select: {
+      paidById: true,
+      description: true,
+      group: { select: { finalizedAt: true } },
+    },
   })
   if (!expense) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (expense.paidById !== session.user.id) {
     return NextResponse.json({ error: 'Only the payer can delete an expense' }, { status: 403 })
+  }
+  if (expense.group?.finalizedAt) {
+    return NextResponse.json({ error: 'Group is finalized' }, { status: 409 })
   }
 
   await prisma.expense.update({ where: { id: params.id }, data: { isDeleted: true } })

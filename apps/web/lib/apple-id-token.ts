@@ -20,7 +20,7 @@ export async function verifyAppleIdentityToken(
     process.env.APPLE_CLIENT_ID ??
     process.env.IOS_BUNDLE_ID ??
     process.env.NEXT_PUBLIC_IOS_BUNDLE_ID ??
-    'com.eshabhoon.fairshare'
+    'com.esha.fareshare'
 
   const { payload } = await jwtVerify(identityToken, appleJwks, {
     issuer: 'https://appleid.apple.com',

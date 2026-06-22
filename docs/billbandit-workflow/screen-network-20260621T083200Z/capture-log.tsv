@@ -1,0 +1,15 @@
+01-welcome.png	--root=prototype --ink-screen=01
+02-new-member.png	--root=prototype --ink-screen=02
+03-trips-empty.png	--root=prototype --ink-screen=03
+04-your-trips.png	--root=prototype --ink-screen=04 --ink-demo-data
+05-new-ledger.png	--root=prototype --ink-screen=05
+06-live-ledger.png	--root=prototype --ink-screen=06 --ink-demo-data
+07-settle.png	--root=prototype --ink-screen=07 --ink-demo-data
+08-record-payment.png	--root=prototype --ink-screen=08 --ink-demo-data
+09-final-bill.png	--root=prototype --ink-screen=09 --ink-demo-data
+10-add-entry.png	--root=prototype --ink-screen=10 --ink-demo-data
+11-add-friend.png	--root=prototype --ink-screen=11
+12-auth-start.png	--root=auth --reset-auth-session
+13-auth-otp.png	--root=auth --ink-auth-step=verify
+14-auth-profile.png	--root=auth --ink-auth-step=profile
+15-auth-loading.png	--root=auth-loading

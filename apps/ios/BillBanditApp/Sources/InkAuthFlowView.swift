@@ -29,6 +29,18 @@ struct InkAuthProfileDraft: Equatable {
 }
 
 struct InkAuthFlowView: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
+    private static let testPhoneNumber = "+15555550100"
+    private static let testOTPCode = "123456"
+    private static var shouldPrefillQACredentials: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--prefill-qa-auth")
+        #else
+        false
+        #endif
+    }
+
     let step: InkAuthFlowStep
     var isSubmitting = false
     var message: String?
@@ -45,7 +57,7 @@ struct InkAuthFlowView: View {
     var onBack: (() -> Void)?
 
     @State private var identifier: String
-    @State private var otpCode = ""
+    @State private var otpCode: String
     @State private var profile: InkAuthProfileDraft
 
     init(
@@ -78,30 +90,43 @@ struct InkAuthFlowView: View {
         self.onBack = onBack
 
         let initialIdentifier: String
+        let initialOTPCode: String
         let initialProfile: InkAuthProfileDraft
         switch step {
         case .start:
-            initialIdentifier = ""
+            initialIdentifier = Self.shouldPrefillQACredentials ? Self.testPhoneNumber : ""
+            initialOTPCode = ""
             initialProfile = .empty
         case .verify(let identifier):
             initialIdentifier = identifier
+            initialOTPCode = Self.shouldPrefillQACredentials ? Self.testOTPCode : ""
             initialProfile = .empty
         case .completeProfile(let identifier, let draft):
             initialIdentifier = identifier ?? ""
+            initialOTPCode = ""
             initialProfile = draft
         }
 
         _identifier = State(initialValue: initialIdentifier)
+        _otpCode = State(initialValue: initialOTPCode)
         _profile = State(initialValue: initialProfile)
     }
 
     var body: some View {
         ZStack {
-            InkAuthPalette.screen
+            LinearGradient(
+                colors: [
+                    liveOverrides.color("auth.screen.start", fallback: Color(red: 0.14, green: 0.19, blue: 0.88)),
+                    liveOverrides.color("auth.screen.middle", fallback: Color(red: 0.11, green: 0.16, blue: 0.82)),
+                    liveOverrides.color("auth.screen.end", fallback: Color(red: 0.04, green: 0.12, blue: 0.64))
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
                 .ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 18) {
+                VStack(spacing: liveOverrides.number("auth.contentSpacing", fallback: 18)) {
                     InkAuthTopBar(canGoBack: onBack != nil, onBack: onBack)
 
                     switch step {
@@ -143,9 +168,9 @@ struct InkAuthFlowView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 22)
-                .padding(.bottom, 32)
+                .padding(.horizontal, liveOverrides.number("auth.padding.horizontal", fallback: 20))
+                .padding(.top, liveOverrides.number("auth.padding.top", fallback: 22))
+                .padding(.bottom, liveOverrides.number("auth.padding.bottom", fallback: 32))
             }
         }
         .tint(InkAuthPalette.cream)
@@ -158,10 +183,11 @@ struct InkAuthFlowView: View {
     private func syncState(with step: InkAuthFlowStep) {
         switch step {
         case .start:
+            identifier = Self.shouldPrefillQACredentials ? Self.testPhoneNumber : ""
             otpCode = ""
         case .verify(let identifier):
             self.identifier = identifier
-            otpCode = ""
+            otpCode = Self.shouldPrefillQACredentials ? Self.testOTPCode : ""
         case .completeProfile(let identifier, let draft):
             self.identifier = identifier ?? self.identifier
             profile = draft
@@ -171,6 +197,8 @@ struct InkAuthFlowView: View {
 }
 
 struct InkAuthStartView: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     @Binding var identifier: String
     var isSubmitting = false
     var message: String?
@@ -185,29 +213,40 @@ struct InkAuthStartView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: liveOverrides.number("auth.start.spacing", fallback: 54)) {
             InkAuthHero(
-                title: "BillBandit",
+                overrideID: "auth.start.hero",
+                title: "",
                 subtitle: "SETTLE THE TAB",
+                spacingFallback: 14,
                 mascot: MascotWelcome(size: 272)
             )
 
             ReceiptCard(
-                eyebrow: "Auth receipt",
-                title: "Start with your email or phone",
-                subtitle: "We will send a one-time code for this account.",
-                barcodeValue: "AUTH-START"
+                eyebrow: nil,
+                title: liveOverrides.text("auth.start.receipt.title", fallback: "Start with your email or phone"),
+                subtitle: liveOverrides.text("auth.start.receipt.subtitle", fallback: "We will send a one-time code for this account"),
+                barcodeValue: "AUTH-START",
+                barcodeHorizontalAlignment: .center
             ) {
                 VStack(alignment: .leading, spacing: 16) {
                     InkAuthField(
                         title: "Email or phone",
                         placeholder: "meera@billbandit.app",
                         text: $identifier,
+                        showsTitle: false,
+                        showsSystemImage: false,
                         systemImage: "at",
                         keyboardType: .emailAddress,
                         textContentType: .username,
                         autocapitalization: .never,
-                        accessibilityIdentifier: "inkAuth.identifier"
+                        accessibilityIdentifier: "inkAuth.identifier",
+                        submitLabel: .continue,
+                        onSubmit: {
+                            if canContinue {
+                                onContinue()
+                            }
+                        }
                     )
 
                     if let message {
@@ -218,13 +257,16 @@ struct InkAuthStartView: View {
                         title: "Send code",
                         systemImage: "arrow.right",
                         isLoading: isSubmitting,
-                        isDisabled: !canContinue
+                        isDisabled: !canContinue,
+                        overrideID: "auth.start.continueButton"
                     ) {
                         onContinue()
                     }
                     .accessibilityIdentifier("inkAuth.continue")
 
-                    InkAuthDividerLabel(text: "or")
+                    if liveOverrides.bool("auth.start.divider.hidden") == false {
+                        InkAuthDividerLabel(text: liveOverrides.text("auth.start.divider.title", fallback: "or"))
+                    }
 
                     if usesMockAppleButton {
                         Button {
@@ -232,13 +274,13 @@ struct InkAuthStartView: View {
                         } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: "apple.logo")
-                                Text("Sign in with Apple")
+                                Text(liveOverrides.text("auth.start.appleButton.title", fallback: "Sign in with Apple"))
                             }
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(liveOverrides.color("auth.start.appleButton.foreground", fallback: .white))
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
-                            .background(Color.black, in: Capsule())
+                            .background(liveOverrides.color("auth.start.appleButton.background", fallback: .black), in: Capsule())
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("inkAuth.apple")
@@ -264,6 +306,8 @@ struct InkAuthStartView: View {
 }
 
 struct InkOTPVerifyView: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let identifier: String
     @Binding var code: String
     var isSubmitting = false
@@ -276,29 +320,44 @@ struct InkOTPVerifyView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: liveOverrides.number("auth.verify.spacing", fallback: 16)) {
             InkAuthHero(
-                title: "Check your code",
-                subtitle: "OTP RECEIPT",
-                mascot: MascotPeek(size: 152)
+                overrideID: "auth.verify.hero",
+                title: "Enter your OTP",
+                subtitle: "",
+                spacingFallback: 0,
+                mascot: MascotPeek(size: 304)
             )
 
             ReceiptCard(
-                eyebrow: "Verification",
-                title: "Enter the 6 digit code",
-                subtitle: "Sent to \(identifier)",
-                barcodeValue: "OTP-\(identifier)"
+                eyebrow: nil,
+                title: nil,
+                subtitle: nil,
+                barcodeValue: "OTP-\(identifier)",
+                barcodeHorizontalAlignment: .center,
+                minHeight: liveOverrides.number("auth.verify.receipt.minHeight", fallback: 430),
+                pinsBarcodeToBottom: true
             ) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 18) {
                     InkAuthField(
                         title: "One-time code",
                         placeholder: "000000",
                         text: $code,
+                        showsTitle: false,
+                        showsSystemImage: false,
                         systemImage: "number",
+                        textAlignment: .center,
                         keyboardType: .numberPad,
                         textContentType: .oneTimeCode,
                         autocapitalization: .never,
-                        accessibilityIdentifier: "inkAuth.otp"
+                        accessibilityIdentifier: "inkAuth.otp",
+                        submitLabel: .go,
+                        submitsFromKeyboardToolbar: true,
+                        onSubmit: {
+                            if canVerify {
+                                onVerify()
+                            }
+                        }
                     )
                     .onChange(of: code) { _, newValue in
                         let filtered = String(newValue.filter(\.isNumber).prefix(6))
@@ -315,7 +374,8 @@ struct InkOTPVerifyView: View {
                         title: "Verify code",
                         systemImage: "checkmark",
                         isLoading: isSubmitting,
-                        isDisabled: !canVerify
+                        isDisabled: !canVerify,
+                        overrideID: "auth.verify.submitButton"
                     ) {
                         onVerify()
                     }
@@ -341,6 +401,8 @@ struct InkOTPVerifyView: View {
 }
 
 struct InkProfileCompletionView: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let identifier: String?
     @Binding var draft: InkAuthProfileDraft
     var isSubmitting = false
@@ -348,22 +410,28 @@ struct InkProfileCompletionView: View {
     var onComplete: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: liveOverrides.number("auth.profile.spacing", fallback: 8)) {
             InkAuthHero(
-                title: "Finish your receipt",
-                subtitle: "PROFILE STAMP",
-                mascot: MascotThinking(size: 154)
+                overrideID: "auth.profile.hero",
+                title: "Create your profile",
+                subtitle: "",
+                spacingFallback: 2,
+                mascot: MascotThinking(size: 172)
             )
 
             ReceiptCard(
-                eyebrow: "Profile",
-                title: "Complete your BillBandit profile",
-                subtitle: identifier.map { "Signing in as \($0)" },
-                barcodeValue: "PROFILE"
+                eyebrow: nil,
+                title: nil,
+                subtitle: nil,
+                barcodeValue: "PROFILE",
+                barcodeHorizontalAlignment: .center,
+                minHeight: liveOverrides.number("auth.profile.receipt.minHeight", fallback: 570),
+                pinsBarcodeToBottom: true,
+                footerAboveBarcode: AnyView(profileActionRow)
             ) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 18) {
                     InkAuthField(
-                        title: "Name",
+                        title: "Full name",
                         placeholder: "Meera Kapoor",
                         text: $draft.name,
                         systemImage: "person",
@@ -372,7 +440,7 @@ struct InkProfileCompletionView: View {
                     )
 
                     InkAuthField(
-                        title: "Preferred name",
+                        title: "Username",
                         placeholder: "Meera",
                         text: $draft.preferredName,
                         systemImage: "person.text.rectangle",
@@ -388,33 +456,46 @@ struct InkProfileCompletionView: View {
                         keyboardType: .emailAddress,
                         textContentType: .username,
                         autocapitalization: .never,
-                        accessibilityIdentifier: "inkAuth.upi"
+                        accessibilityIdentifier: "inkAuth.upi",
+                        submitLabel: .done,
+                        onSubmit: {
+                            if draft.isReady {
+                                onComplete()
+                            }
+                        }
                     )
 
                     if let message {
                         InkAuthMessage(text: message)
                     }
-
-                    HStack(alignment: .center, spacing: 12) {
-                        InkAuthSeal(text: "BILL\nBANDIT")
-
-                        InkAuthPillButton(
-                            title: "Save profile",
-                            systemImage: "checkmark.seal",
-                            isLoading: isSubmitting,
-                            isDisabled: isSubmitting || !draft.isReady
-                        ) {
-                            onComplete()
-                        }
-                        .accessibilityIdentifier("inkAuth.completeProfile")
-                    }
                 }
             }
         }
     }
+
+    private var profileActionRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            InkAuthSeal(text: "Bill\nBandit")
+
+            InkAuthPillButton(
+                title: "Create Account",
+                systemImage: "checkmark.seal",
+                isLoading: isSubmitting,
+                isDisabled: isSubmitting || !draft.isReady,
+                overrideID: "auth.profile.saveButton"
+            ) {
+                onComplete()
+            }
+            .accessibilityIdentifier("inkAuth.completeProfile")
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+    }
 }
 
 private struct InkAuthTopBar: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let canGoBack: Bool
     let onBack: (() -> Void)?
 
@@ -438,39 +519,48 @@ private struct InkAuthTopBar: View {
 
             Spacer()
 
-            Text("AUTH")
-                .font(InkAuthPalette.labelFont)
-                .tracking(4.2)
-                .foregroundStyle(InkAuthPalette.cream)
-
-            Spacer()
-
             Color.clear.frame(width: 40, height: 40)
         }
         .foregroundStyle(InkAuthPalette.cream)
+        .offset(y: topBarYOffset)
+        .padding(.bottom, topBarYOffset)
+    }
+
+    private var topBarYOffset: CGFloat {
+        liveOverrides.number("auth.topBar.yOffset", fallback: -48)
     }
 }
 
 private struct InkAuthHero<Mascot: View>: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
+    var overrideID: String?
     let title: String
     let subtitle: String
+    var spacingFallback: CGFloat = 10
     let mascot: Mascot
 
     var body: some View {
-        VStack(spacing: 10) {
-            mascot
-                .frame(maxWidth: .infinity)
+        VStack(spacing: liveOverrides.number("\(overrideID ?? "").spacing", fallback: spacingFallback)) {
+            if liveOverrides.bool("\(overrideID ?? "").mascot.hidden") == false {
+                mascot
+                    .frame(maxWidth: .infinity)
+            }
 
-            VStack(spacing: 5) {
-                Text(subtitle.uppercased())
-                    .font(InkAuthPalette.labelFont)
-                    .tracking(1.8)
-                    .foregroundStyle(InkAuthPalette.periwinkle)
+            VStack(spacing: liveOverrides.number("\(overrideID ?? "").titleSpacing", fallback: 5)) {
+                let resolvedSubtitle = liveOverrides.text("\(overrideID ?? "").subtitle", fallback: subtitle)
+                if !resolvedSubtitle.isEmpty, liveOverrides.bool("\(overrideID ?? "").subtitle.hidden") == false {
+                    Text(resolvedSubtitle.uppercased())
+                        .font(InkAuthPalette.labelFont)
+                        .tracking(1.8)
+                        .foregroundStyle(liveOverrides.color("\(overrideID ?? "").subtitleColor", fallback: InkAuthPalette.periwinkle))
+                }
 
-                if !title.isEmpty {
-                    Text(title)
-                        .font(.system(size: 34, weight: .semibold, design: .serif))
-                        .foregroundStyle(InkAuthPalette.cream)
+                let resolvedTitle = liveOverrides.text("\(overrideID ?? "").title", fallback: title)
+                if !resolvedTitle.isEmpty, liveOverrides.bool("\(overrideID ?? "").title.hidden") == false {
+                    Text(resolvedTitle)
+                        .font(.system(size: liveOverrides.number("\(overrideID ?? "").titleFontSize", fallback: 34), weight: .semibold, design: .serif))
+                        .foregroundStyle(liveOverrides.color("\(overrideID ?? "").titleColor", fallback: InkAuthPalette.cream))
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.72)
@@ -484,41 +574,58 @@ private struct InkAuthField: View {
     let title: String
     let placeholder: String
     @Binding var text: String
+    var showsTitle = true
+    var showsSystemImage = true
     var systemImage: String?
+    var textAlignment: TextAlignment = .leading
     var keyboardType: UIKeyboardType = .default
     var textContentType: UITextContentType?
     var autocapitalization: TextInputAutocapitalization = .words
     var accessibilityIdentifier: String
+    var submitLabel: SubmitLabel = .done
+    var submitsFromKeyboardToolbar = false
+    var onSubmit: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(InkAuthPalette.labelFont)
-                .tracking(1.0)
-                .foregroundStyle(InkReceiptTheme.structureInk)
+            if showsTitle {
+                Text(title.uppercased())
+                    .font(InkAuthPalette.labelFont)
+                    .tracking(1.0)
+                    .foregroundStyle(InkReceiptTheme.structureInk)
+            }
 
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                if let systemImage {
+                if showsSystemImage, let systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(InkReceiptTheme.rupeeBlue)
                         .frame(width: 18)
+                        .accessibilityHidden(true)
                 }
 
                 TextField(placeholder, text: $text)
                     .font(.system(size: 18, weight: .semibold, design: .serif))
                     .foregroundStyle(InkReceiptTheme.structureInk)
+                    .multilineTextAlignment(textAlignment)
                     .keyboardType(keyboardType)
                     .textContentType(textContentType)
                     .textInputAutocapitalization(autocapitalization)
                     .autocorrectionDisabled()
-                    .submitLabel(.done)
+                    .submitLabel(submitLabel)
+                    .onSubmit {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        onSubmit()
+                    }
                     .accessibilityIdentifier(accessibilityIdentifier)
                     .toolbar {
                         ToolbarItemGroup(placement: .keyboard) {
                             Spacer()
                             Button("Done") {
                                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                                if submitsFromKeyboardToolbar {
+                                    onSubmit()
+                                }
                             }
                             .accessibilityIdentifier("keyboard.done")
                         }
@@ -532,38 +639,44 @@ private struct InkAuthField: View {
 }
 
 private struct InkAuthPillButton: View {
+    @EnvironmentObject private var liveOverrides: LiveDesignOverrides
+
     let title: String
     var systemImage: String?
     var isLoading = false
     var isDisabled = false
+    var overrideID: String?
     let action: () -> Void
 
+    @ViewBuilder
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 9) {
-                if isLoading {
-                    ProgressView()
-                        .tint(InkReceiptTheme.receiptCream)
-                } else if let systemImage {
-                    Image(systemName: systemImage)
-                        .imageScale(.medium)
-                }
+        if liveOverrides.bool("\(overrideID ?? "").hidden") == false {
+            Button(action: action) {
+                HStack(spacing: 9) {
+                    if isLoading {
+                        ProgressView()
+                            .tint(InkReceiptTheme.receiptCream)
+                    } else if let systemImage {
+                        Image(systemName: systemImage)
+                            .imageScale(.medium)
+                    }
 
-                Text(title)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+                    Text(liveOverrides.text("\(overrideID ?? "").title", fallback: title))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+                .font(.system(size: liveOverrides.number("\(overrideID ?? "").fontSize", fallback: 17), weight: .bold, design: .serif))
+                .foregroundStyle(liveOverrides.color("\(overrideID ?? "").foreground", fallback: InkReceiptTheme.receiptCream))
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+                .padding(.vertical, liveOverrides.number("\(overrideID ?? "").paddingVertical", fallback: 14))
+                .background(liveOverrides.color("\(overrideID ?? "").background", fallback: InkReceiptTheme.structureInk), in: Capsule())
             }
-            .font(.system(size: 17, weight: .bold, design: .serif))
-            .foregroundStyle(InkReceiptTheme.receiptCream)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(InkReceiptTheme.structureInk, in: Capsule())
+            .buttonStyle(.plain)
+            .disabled(isDisabled || isLoading)
+            .opacity(isDisabled ? 0.52 : 1)
+            .accessibilityLabel(liveOverrides.text("\(overrideID ?? "").title", fallback: title))
         }
-        .buttonStyle(.plain)
-        .disabled(isDisabled || isLoading)
-        .opacity(isDisabled ? 0.52 : 1)
-        .accessibilityLabel(title)
     }
 }
 
@@ -606,17 +719,25 @@ private struct InkAuthSeal: View {
 
     var body: some View {
         ZStack {
-            Circle().stroke(InkReceiptTheme.rupeeBlue, lineWidth: 1.5)
-            Circle().stroke(InkReceiptTheme.rupeeBlue.opacity(0.56), lineWidth: 1)
+            Circle()
+                .stroke(InkReceiptTheme.rupeeBlue.opacity(0.92), style: StrokeStyle(lineWidth: 2.0, dash: [3, 2]))
+            Circle()
+                .stroke(InkReceiptTheme.rupeeBlue.opacity(0.64), lineWidth: 1)
                 .padding(5)
+            Circle()
+                .stroke(InkReceiptTheme.rupeeBlue.opacity(0.36), lineWidth: 1)
+                .padding(10)
             Text(text)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(1.0)
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(0.2)
+                .lineSpacing(-1)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(InkReceiptTheme.rupeeBlue)
-                .padding(10)
+                .padding(8)
         }
         .frame(width: 62, height: 62)
+        .rotationEffect(.degrees(30))
+        .opacity(0.92)
         .accessibilityHidden(true)
     }
 }
@@ -646,17 +767,20 @@ private extension String {
 
 #Preview("Ink Auth Start") {
     InkAuthFlowView(step: .start)
+        .environmentObject(LiveDesignOverrides.disabled)
 }
 
 #Preview("Ink OTP") {
-    InkAuthFlowView(step: .verify(identifier: "meera@billbandit.app"))
+    InkAuthFlowView(step: .verify(identifier: "+15555550100"))
+        .environmentObject(LiveDesignOverrides.disabled)
 }
 
 #Preview("Ink Profile") {
     InkAuthFlowView(
         step: .completeProfile(
-            identifier: "meera@billbandit.app",
+            identifier: "+15555550100",
             draft: InkAuthProfileDraft(name: "Meera Kapoor", preferredName: "Meera", upiID: "meera@upi")
         )
     )
+    .environmentObject(LiveDesignOverrides.disabled)
 }

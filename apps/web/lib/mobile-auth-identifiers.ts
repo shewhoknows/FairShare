@@ -30,8 +30,10 @@ export function normalizeAuthIdentifier(input: string): NormalizedAuthIdentifier
   return { type: 'phone', value: normalized, masked: maskPhone(normalized) }
 }
 
-export function generateOTP() {
-  if (process.env.MOBILE_AUTH_TEST_CODE) return process.env.MOBILE_AUTH_TEST_CODE
+export function generateOTP(identifier?: NormalizedAuthIdentifier) {
+  if (identifier && isMobileAuthTestIdentifier(identifier)) {
+    return process.env.MOBILE_AUTH_TEST_CODE!
+  }
   return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
 }
 
@@ -68,7 +70,7 @@ export async function sendOTP(identifier: NormalizedAuthIdentifier, code: string
     })
   }
 
-  if (process.env.MOBILE_AUTH_TEST_CODE) {
+  if (isMobileAuthTestIdentifier(identifier)) {
     return { success: true, logged: true }
   }
 
@@ -76,6 +78,19 @@ export async function sendOTP(identifier: NormalizedAuthIdentifier, code: string
     success: false,
     error: 'Phone OTP delivery is not configured yet. Set MOBILE_AUTH_TEST_CODE for QA or add an SMS provider.',
   }
+}
+
+export function isMobileAuthTestIdentifier(identifier: NormalizedAuthIdentifier) {
+  const code = process.env.MOBILE_AUTH_TEST_CODE
+  const rawAllowed = process.env.MOBILE_AUTH_TEST_IDENTIFIERS
+  if (!code || !rawAllowed) return false
+
+  const allowed = rawAllowed
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+
+  return allowed.includes('*') || allowed.includes(identifier.value.toLowerCase())
 }
 
 function maskEmail(email: string) {

@@ -1,9 +1,11 @@
 import AuthenticationServices
+import Combine
 import SwiftUI
 
 @main
 struct BillBanditApp: App {
     @State private var authStore = AuthStore.live()
+    @StateObject private var liveDesignOverrides = LiveDesignOverrides.cockpit()
     @AppStorage(PaisaAppearanceMode.storageKey) private var appearanceModeRaw = PaisaAppearanceMode.system.rawValue
 
     private var appearanceMode: PaisaAppearanceMode {
@@ -14,8 +16,144 @@ struct BillBanditApp: App {
         WindowGroup {
             RootView()
                 .environment(authStore)
+                .environmentObject(liveDesignOverrides)
                 .preferredColorScheme(appearanceMode.colorScheme)
+                .task {
+                    liveDesignOverrides.startPolling()
+                }
         }
+    }
+}
+
+struct LiveDesignOverrideValue: Codable, Equatable {
+    var kind: String
+    var value: String
+}
+
+private struct LiveDesignOverrideSnapshot: Decodable {
+    var revision: Int
+    var overrides: [String: LiveDesignOverrideValue]
+}
+
+@MainActor
+final class LiveDesignOverrides: ObservableObject {
+    @Published private(set) var revision = 0
+    @Published private var overrides: [String: LiveDesignOverrideValue] = [:]
+
+    static let disabled = LiveDesignOverrides(isEnabled: false)
+
+    private let isEnabled: Bool
+    private let endpoint: URL
+    private var pollTask: Task<Void, Never>?
+
+    init(isEnabled: Bool, endpoint: URL = URL(string: "http://127.0.0.1:8787/api/ios/live-overrides")!) {
+        self.isEnabled = isEnabled
+        self.endpoint = endpoint
+    }
+
+    static func cockpit() -> LiveDesignOverrides {
+        #if DEBUG
+        LiveDesignOverrides(isEnabled: true)
+        #else
+        LiveDesignOverrides(isEnabled: false)
+        #endif
+    }
+
+    func startPolling() {
+        guard isEnabled, pollTask == nil else { return }
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refreshOnce()
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+    }
+
+    func text(_ key: String, fallback: String) -> String {
+        guard let override = overrides[key], override.kind == "text", override.value.isEmpty == false else {
+            return fallback
+        }
+        return override.value
+    }
+
+    func color(_ key: String, fallback: Color) -> Color {
+        guard let override = overrides[key], override.kind == "color", let color = Self.color(from: override.value) else {
+            return fallback
+        }
+        return color
+    }
+
+    func number(_ key: String, fallback: CGFloat) -> CGFloat {
+        guard let override = overrides[key], override.kind == "number", let value = Double(override.value) else {
+            return fallback
+        }
+        return CGFloat(value)
+    }
+
+    func bool(_ key: String, fallback: Bool = false) -> Bool {
+        guard let override = overrides[key], override.kind == "bool" else {
+            return fallback
+        }
+        switch override.value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "true", "1", "yes", "on":
+            return true
+        case "false", "0", "no", "off":
+            return false
+        default:
+            return fallback
+        }
+    }
+
+    private func refreshOnce() async {
+        do {
+            let (data, response) = try await URLSession.shared.data(from: endpoint)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return }
+            let snapshot = try JSONDecoder().decode(LiveDesignOverrideSnapshot.self, from: data)
+            guard snapshot.revision != revision else { return }
+            revision = snapshot.revision
+            overrides = snapshot.overrides
+        } catch {
+            return
+        }
+    }
+
+    private static func color(from rawValue: String) -> Color? {
+        let normalized = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch normalized {
+        case "black": return .black
+        case "white": return .white
+        case "clear", "transparent": return .clear
+        case "blue": return .blue
+        case "red": return .red
+        case "green": return .green
+        case "yellow": return .yellow
+        case "orange": return .orange
+        case "purple": return .purple
+        case "pink": return .pink
+        case "gray", "grey": return .gray
+        default: break
+        }
+
+        let hex = normalized.replacingOccurrences(of: "#", with: "")
+        guard hex.count == 6 || hex.count == 8, let value = UInt64(hex, radix: 16) else {
+            return nil
+        }
+        let red: Double
+        let green: Double
+        let blue: Double
+        let alpha: Double
+        if hex.count == 8 {
+            alpha = Double((value >> 24) & 0xff) / 255.0
+            red = Double((value >> 16) & 0xff) / 255.0
+            green = Double((value >> 8) & 0xff) / 255.0
+            blue = Double(value & 0xff) / 255.0
+        } else {
+            alpha = 1
+            red = Double((value >> 16) & 0xff) / 255.0
+            green = Double((value >> 8) & 0xff) / 255.0
+            blue = Double(value & 0xff) / 255.0
+        }
+        return Color(red: red, green: green, blue: blue, opacity: alpha)
     }
 }
 
@@ -39,7 +177,7 @@ private struct AuthenticatedBillBanditRootView: View {
     let options: AppLaunchOptions
 
     @State private var signedOutDestination: SignedOutDestination
-    @State private var authStep = InkAuthFlowStep.start
+    @State private var authStep: InkAuthFlowStep
     @State private var authMessage: String?
     @State private var isSubmitting = false
     @State private var didStartRestore = false
@@ -47,24 +185,33 @@ private struct AuthenticatedBillBanditRootView: View {
     init(options: AppLaunchOptions) {
         self.options = options
         _signedOutDestination = State(initialValue: options.startsAtAuth ? .auth : .welcome)
+        _authStep = State(initialValue: options.authInitialStep)
     }
 
     var body: some View {
         Group {
-            switch authStore.state {
-            case .restoring:
+            if options.forcesAuthLoading {
                 InkAuthLoadingView()
-            case .signedOut:
-                signedOutView
-            case .signedIn(let user):
-                if user.isProfileComplete == true {
-                    BillBanditInkPrototypeView(
-                        initialScreen: .tripsEmpty,
-                        apiClient: authStore.apiClient,
-                        currentUser: user
-                    )
-                } else {
-                    authFlow(profileUser: user)
+            } else {
+                switch authStore.state {
+                case .restoring:
+                    InkAuthLoadingView()
+                case .signedOut:
+                    signedOutView
+                case .signedIn(let user):
+                    if user.isProfileComplete == true {
+                        BillBanditInkPrototypeView(
+                            initialScreen: .tripsEmpty,
+                            apiClient: authStore.apiClient,
+                            currentUser: user,
+                            onLogout: {
+                                authStore.logout()
+                                signedOutDestination = .welcome
+                            }
+                        )
+                    } else {
+                        authFlow(profileUser: user)
+                    }
                 }
             }
         }
@@ -92,7 +239,7 @@ private struct AuthenticatedBillBanditRootView: View {
                 },
                 onWelcomeCreateAccount: {
                     authMessage = nil
-                    authStep = .start
+                    authStep = .completeProfile(identifier: nil, draft: .empty)
                     signedOutDestination = .auth
                 }
             )
@@ -279,7 +426,7 @@ private struct AuthenticatedBillBanditRootView: View {
             authStep = .start
         case .completeProfile:
             if case .signedOut = authStore.state {
-                authStep = .start
+                signedOutDestination = .welcome
             }
         }
     }
@@ -288,14 +435,28 @@ private struct AuthenticatedBillBanditRootView: View {
 private struct InkAuthLoadingView: View {
     var body: some View {
         ZStack {
-            Color(red: 0.10, green: 0.16, blue: 0.82).ignoresSafeArea()
-            VStack(spacing: 18) {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.14, green: 0.19, blue: 0.88),
+                    Color(red: 0.10, green: 0.16, blue: 0.82),
+                    Color(red: 0.05, green: 0.12, blue: 0.66)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 22) {
                 MascotStamp(size: 92)
-                Text("CHECKING RECEIPTS")
-                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                    .tracking(3)
-                    .foregroundStyle(Color(red: 0.64, green: 0.68, blue: 0.94))
+                    .accessibilityHidden(true)
+
+                Text("CHECKING PROFILE DETAILS")
+                    .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                    .tracking(5)
+                    .foregroundStyle(Color(red: 0.66, green: 0.70, blue: 0.94))
+
                 ProgressView()
+                    .controlSize(.large)
                     .tint(Color(red: 0.96, green: 0.94, blue: 0.88))
             }
         }
@@ -326,7 +487,36 @@ private struct AppLaunchOptions: Equatable {
     }
 
     var startsAtAuth: Bool {
-        arguments.contains("--root=auth")
+        arguments.contains("--root=auth") || arguments.contains { $0.hasPrefix("--ink-auth-step=") }
+    }
+
+    var forcesAuthLoading: Bool {
+        arguments.contains("--root=auth-loading")
+    }
+
+    var authInitialStep: InkAuthFlowStep {
+        guard let rawValue = arguments.first(where: { $0.hasPrefix("--ink-auth-step=") })?
+            .dropFirst("--ink-auth-step=".count)
+        else {
+            return .start
+        }
+
+        let identifier = "meera.docs@example.com"
+        switch String(rawValue) {
+        case "verify":
+            return .verify(identifier: identifier)
+        case "profile":
+            return .completeProfile(
+                identifier: identifier,
+                draft: InkAuthProfileDraft(
+                    name: "Meera Kapoor",
+                    preferredName: "Meera",
+                    upiID: ""
+                )
+            )
+        default:
+            return .start
+        }
     }
 
     var resetsAuthSession: Bool {
